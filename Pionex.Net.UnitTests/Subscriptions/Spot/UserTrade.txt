@@ -1,0 +1,19 @@
+> {"op": "SUBSCRIBE", "topic": "FILL", "symbol": "ETH_USDT"}
+< {"type": "SUBSCRIBED", "topic": "FILL", "symbol": "ETH_USDT"}
+= 
+{
+  "topic": "FILL",
+  "symbol": "ETH_USDT",
+  "timestamp": 1,
+  "data": {
+    "id": 1,
+    "orderId": 1,
+    "side": "BUY",
+    "role": "TAKER",
+    "price": "123",
+    "size": "123",
+    "fee": "123",
+    "feeCoin": "123",
+    "timestamp": 1
+  }
+}

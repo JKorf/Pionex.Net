@@ -1,0 +1,775 @@
+# Pionex.Net Full LLM Context
+
+Pionex.Net is a strongly typed C#/.NET client library for the Pionex REST and WebSocket APIs. It is based on CryptoExchange.Net and provides typed models, authentication, serialization, client-side rate limiting integration, automatic WebSocket connection management, local order books, dependency injection, user-specific client caching, and shared multi-exchange interfaces.
+
+Current library scope: Pionex Spot REST and WebSocket APIs.
+
+Current package ID: `Pionex.Net`
+
+Supported targets:
+
+- netstandard2.0
+- netstandard2.1
+- net8.0
+- net9.0
+- net10.0
+
+Native AOT is enabled on compatible frameworks.
+
+## Golden Rules for Code Generation
+
+1. Use `PionexRestClient` and `PionexSocketClient`; do not hand-write Pionex HTTP signing or WebSocket protocol code.
+2. Pionex.Net currently implements Spot only. Do not invent futures, perpetual, margin, options, or derivatives APIs.
+3. Direct Pionex symbols use an underscore, for example `BTC_USDT`.
+4. Configure private clients with `PionexCredentials`, not generic credentials.
+5. REST calls return `HttpResult<T>` or `HttpResult`.
+6. WebSocket subscriptions return `WebSocketResult<UpdateSubscription>`.
+7. Check `.Success` before accessing `.Data`.
+8. Direct ticker and book-ticker methods return arrays even when one symbol is requested.
+9. Direct `PionexTicker` exposes `ClosePrice`, not `LastPrice`.
+10. Market buys use `quoteQuantity`; market sells use `quantity`.
+11. Private socket subscriptions authenticate from socket client credentials. Do not add a listen-key workflow.
+12. Direct public socket methods provide trades and order books, not ticker or kline subscriptions.
+13. Store successful subscriptions and call `UnsubscribeAsync` during shutdown.
+14. Reuse clients or use dependency injection; do not create clients per request.
+15. Verify unfamiliar method names in `Pionex.Net/Interfaces/Clients/**`.
+
+## Installation
+
+```bash
+dotnet add package Pionex.Net
+```
+
+## Required Usings
+
+Common direct-client code:
+
+```csharp
+using Pionex.Net;
+using Pionex.Net.Clients;
+using Pionex.Net.Enums;
+```
+
+Result types and socket subscription objects:
+
+```csharp
+using CryptoExchange.Net.Objects;
+using CryptoExchange.Net.Objects.Sockets;
+```
+
+Shared multi-exchange interfaces:
+
+```csharp
+using CryptoExchange.Net.SharedApis;
+```
+
+Dependency injection:
+
+```csharp
+using Microsoft.Extensions.DependencyInjection;
+using Pionex.Net.Interfaces.Clients;
+```
+
+Do not import enums from Binance.Net, OKX.Net, or another exchange library into Pionex calls.
+
+## REST Client Setup
+
+Public market-data endpoints need no credentials:
+
+```csharp
+var publicClient = new PionexRestClient();
+```
+
+Private account and trading endpoints require an API key and secret:
+
+```csharp
+var privateClient = new PionexRestClient(options =>
+{
+    options.ApiCredentials = new PionexCredentials(
+        "API_KEY",
+        "API_SECRET");
+});
+```
+
+Credentials use HMAC through the Pionex-specific `PionexCredentials` class. Pionex credentials do not require a passphrase.
+
+Clients implement disposal, but application-wide clients should normally be reused for the lifetime of their owner. Prefer dependency injection in hosted applications.
+
+## Socket Client Setup
+
+Public socket streams:
+
+```csharp
+var publicSocket = new PionexSocketClient();
+```
+
+Private socket streams:
+
+```csharp
+var privateSocket = new PionexSocketClient(options =>
+{
+    options.ApiCredentials = new PionexCredentials(
+        "API_KEY",
+        "API_SECRET");
+});
+```
+
+Pionex.Net authenticates private WebSocket subscriptions with credentials configured on `PionexSocketClient`. There is no REST call to create or maintain a listen key.
+
+## Dependency Injection
+
+Register Pionex clients and supporting services:
+
+```csharp
+services.AddPionex(options =>
+{
+    options.ApiCredentials = new PionexCredentials(
+        "API_KEY",
+        "API_SECRET");
+});
+```
+
+Then inject:
+
+```csharp
+public sealed class PriceService
+{
+    private readonly IPionexRestClient _client;
+
+    public PriceService(IPionexRestClient client)
+    {
+        _client = client;
+    }
+}
+```
+
+`AddPionex` registers:
+
+- `IPionexRestClient`
+- `IPionexSocketClient`
+- supported CryptoExchange.Net shared REST interfaces
+- supported CryptoExchange.Net shared socket interfaces
+- `IPionexOrderBookFactory`
+- `IPionexTrackerFactory`
+- `ITrackerFactory`
+- `IPionexUserClientProvider`
+
+The configuration overload can bind `PionexOptions` from `IConfiguration`.
+
+## Result Handling
+
+REST endpoint methods return `HttpResult<T>` or non-generic `HttpResult`:
+
+```csharp
+var result = await publicClient.SpotApi.ExchangeData
+    .GetOrderBookAsync("BTC_USDT", limit: 20);
+
+if (!result.Success)
+{
+    Console.WriteLine($"Code: {result.Error?.Code}");
+    Console.WriteLine($"Message: {result.Error?.Message}");
+    Console.WriteLine($"Type: {result.Error?.ErrorType}");
+    Console.WriteLine($"Transient: {result.Error?.IsTransient}");
+    return;
+}
+
+var bestBid = result.Data.Bids.FirstOrDefault()?.Price;
+```
+
+Normal API errors appear in `.Error`. Do not write code that expects invalid credentials, invalid parameters, insufficient balance, or exchange rejections to be thrown as ordinary exceptions.
+
+Retry only transient errors:
+
+```csharp
+static async Task<HttpResult<T>> RetryTransientAsync<T>(
+    Func<Task<HttpResult<T>>> action,
+    int maxAttempts = 3)
+{
+    HttpResult<T> result = default!;
+
+    for (var attempt = 1; attempt <= maxAttempts; attempt++)
+    {
+        result = await action();
+        if (result.Success || result.Error?.IsTransient != true)
+            return result;
+
+        await Task.Delay(TimeSpan.FromMilliseconds(
+            250 * Math.Pow(2, attempt - 1)));
+    }
+
+    return result;
+}
+```
+
+Use cancellation tokens when operations should follow request or service lifetime.
+
+## Main API Surface
+
+The root REST client has one API:
+
+```text
+PionexRestClient
+└── SpotApi
+    ├── ExchangeData
+    ├── Account
+    ├── Trading
+    └── SharedClient
+```
+
+The root socket client has one API:
+
+```text
+PionexSocketClient
+└── SpotApi
+    └── SharedClient
+```
+
+All direct socket subscription methods are directly on `socketClient.SpotApi`; there are no nested `ExchangeData`, `Account`, or `Trading` socket properties.
+
+## Intent-to-Method Map
+
+Public REST:
+
+| Intent | Method |
+|---|---|
+| Server time | `SpotApi.ExchangeData.GetServerTimeAsync()` |
+| Symbols and trading rules | `SpotApi.ExchangeData.GetSymbolsAsync(...)` |
+| Recent public trades | `SpotApi.ExchangeData.GetRecentTradesAsync(symbol, ...)` |
+| Order book snapshot | `SpotApi.ExchangeData.GetOrderBookAsync(symbol, ...)` |
+| 24-hour tickers | `SpotApi.ExchangeData.GetTickersAsync(...)` |
+| Best bid/ask tickers | `SpotApi.ExchangeData.GetBookTickersAsync(...)` |
+| Candlesticks | `SpotApi.ExchangeData.GetKlinesAsync(symbol, interval, ...)` |
+
+Private REST:
+
+| Intent | Method |
+|---|---|
+| Simple balances | `SpotApi.Account.GetBalancesAsync()` |
+| Full wallet/bot/trader details | `SpotApi.Account.GetFullBalancesAsync()` |
+| Place order | `SpotApi.Trading.PlaceOrderAsync(...)` |
+| Order by exchange ID | `SpotApi.Trading.GetOrderAsync(orderId)` |
+| Order by client ID | `SpotApi.Trading.GetOrderByClientOrderIdAsync(clientOrderId)` |
+| Cancel one order | `SpotApi.Trading.CancelOrderAsync(symbol, orderId)` |
+| Open orders | `SpotApi.Trading.GetOpenOrdersAsync(symbol)` |
+| Order history | `SpotApi.Trading.GetOrdersAsync(symbol, ...)` |
+| Cancel all symbol orders | `SpotApi.Trading.CancelAllOrdersAsync(symbol)` |
+| User trades/fills | `SpotApi.Trading.GetUserTradesAsync(symbol, ...)` |
+| Fills for an order | `SpotApi.Trading.GetOrderTradesAsync(orderId, ...)` |
+
+WebSocket:
+
+| Intent | Method |
+|---|---|
+| Public trades | `SpotApi.SubscribeToTradeUpdatesAsync(symbol, handler)` |
+| Public order book snapshots | `SpotApi.SubscribeToOrderBookUpdatesAsync(symbol, depth, handler)` |
+| Private order updates | `SpotApi.SubscribeToOrderUpdatesAsync(symbol, handler)` |
+| Private fill updates | `SpotApi.SubscribeToUserTradeUpdatesAsync(symbol, handler)` |
+| Private balance updates | `SpotApi.SubscribeToBalanceUpdatesAsync(handler)` |
+
+There are no direct ticker, book-ticker, or kline WebSocket methods. Shared socket interfaces can adapt the available order-book stream into shared book-ticker behavior.
+
+## Symbol Format and Metadata
+
+Direct endpoint symbols use Pionex's underscore format:
+
+```csharp
+"BTC_USDT"
+"ETH_USDT"
+```
+
+Do not use:
+
+```csharp
+"BTCUSDT"
+"BTC-USDT"
+"BTC/USDT"
+```
+
+Query metadata before trading:
+
+```csharp
+var symbols = await publicClient.SpotApi.ExchangeData.GetSymbolsAsync(
+    symbols: "ETH_USDT",
+    symbolType: SymbolType.Spot);
+
+if (!symbols.Success) { Console.WriteLine(symbols.Error); return; }
+
+var info = symbols.Data.Single();
+Console.WriteLine($"Enabled: {info.Enable}");
+Console.WriteLine($"Quantity precision: {info.QuantityPrecision}");
+Console.WriteLine($"Minimum quantity: {info.MinSpotQuantity}");
+```
+
+Important `PionexSymbol` properties include:
+
+- `Symbol`
+- `SymbolType`
+- `BaseAsset`
+- `QuoteAsset`
+- `BasePrecision`
+- `QuotePrecision`
+- `QuantityPrecision`
+- `MinSpotQuantity`
+- `MinTradeQuantity`
+- `MaxTradeQuantity`
+- `Enable`
+
+Validate the current metadata rather than hardcoding exchange filters.
+
+## Public Market Data
+
+Ticker:
+
+```csharp
+var result = await publicClient.SpotApi.ExchangeData.GetTickersAsync(
+    "BTC_USDT",
+    SymbolType.Spot);
+
+if (!result.Success) { Console.WriteLine(result.Error); return; }
+
+var ticker = result.Data.Single();
+Console.WriteLine(ticker.ClosePrice);
+```
+
+`GetTickersAsync` returns `PionexTicker[]`. Direct ticker properties include `OpenPrice`, `ClosePrice`, `HighPrice`, `LowPrice`, `Volume`, `VolumeQuote`, and `TradeCount`.
+
+Order book:
+
+```csharp
+var result = await publicClient.SpotApi.ExchangeData.GetOrderBookAsync(
+    "BTC_USDT",
+    limit: 20);
+
+if (!result.Success) { Console.WriteLine(result.Error); return; }
+
+Console.WriteLine(result.Data.Bids.FirstOrDefault()?.Price);
+Console.WriteLine(result.Data.Asks.FirstOrDefault()?.Price);
+```
+
+Klines:
+
+```csharp
+var result = await publicClient.SpotApi.ExchangeData.GetKlinesAsync(
+    "BTC_USDT",
+    KlineInterval.OneMinute,
+    limit: 100);
+
+if (!result.Success) { Console.WriteLine(result.Error); return; }
+
+foreach (var kline in result.Data)
+    Console.WriteLine($"{kline.OpenTime}: {kline.ClosePrice}");
+```
+
+Supported direct kline enum values are one minute, five minutes, fifteen minutes, thirty minutes, one hour, four hours, eight hours, twelve hours, and one day.
+
+## Account Data
+
+Basic balances:
+
+```csharp
+var result = await privateClient.SpotApi.Account.GetBalancesAsync();
+if (!result.Success) { Console.WriteLine(result.Error); return; }
+
+foreach (var balance in result.Data.Where(
+    x => x.Free != 0 || x.Frozen != 0))
+{
+    Console.WriteLine(
+        $"{balance.Asset}: free={balance.Free}, frozen={balance.Frozen}");
+}
+```
+
+`GetBalancesAsync` returns `PionexBalance[]`, not a wrapper object.
+
+Full balance information:
+
+```csharp
+var result = await privateClient.SpotApi.Account.GetFullBalancesAsync();
+if (!result.Success) { Console.WriteLine(result.Error); return; }
+
+Console.WriteLine(result.Data.TotalInUsdt);
+Console.WriteLine(result.Data.TotalInBtc);
+```
+
+Full details include prices plus bot-account and trader-account sections. Do not flatten these into the simple balance model.
+
+## Spot Order Placement
+
+Limit buy:
+
+```csharp
+var result = await privateClient.SpotApi.Trading.PlaceOrderAsync(
+    symbol: "ETH_USDT",
+    side: OrderSide.Buy,
+    type: OrderType.Limit,
+    quantity: 0.01m,
+    price: 2000m,
+    clientOrderId: $"app-{Guid.NewGuid():N}");
+
+if (!result.Success)
+{
+    Console.WriteLine(result.Error);
+    return;
+}
+
+Console.WriteLine(result.Data.OrderId);
+Console.WriteLine(result.Data.ClientOrderId);
+```
+
+Market buy spends quote asset:
+
+```csharp
+var result = await privateClient.SpotApi.Trading.PlaceOrderAsync(
+    symbol: "ETH_USDT",
+    side: OrderSide.Buy,
+    type: OrderType.Market,
+    quoteQuantity: 25m);
+```
+
+Market sell specifies base quantity:
+
+```csharp
+var result = await privateClient.SpotApi.Trading.PlaceOrderAsync(
+    symbol: "ETH_USDT",
+    side: OrderSide.Sell,
+    type: OrderType.Market,
+    quantity: 0.01m);
+```
+
+Do not pass `quoteQuantity` for a normal market sell and do not omit it for a market buy.
+
+The placement result is `PionexOrderResult`, which contains `OrderId` and optional `ClientOrderId`.
+
+## Order Query and Cancellation
+
+```csharp
+var order = await privateClient.SpotApi.Trading.GetOrderAsync(orderId);
+if (!order.Success) { Console.WriteLine(order.Error); return; }
+
+Console.WriteLine(order.Data.Status);
+Console.WriteLine(order.Data.QuantityFilled);
+
+var cancel = await privateClient.SpotApi.Trading.CancelOrderAsync(
+    order.Data.Symbol,
+    order.Data.OrderId);
+
+if (!cancel.Success)
+    Console.WriteLine(cancel.Error);
+```
+
+`CancelOrderAsync` returns non-generic `HttpResult`, so there is no response `.Data` to read.
+
+Order history is symbol-scoped:
+
+```csharp
+var orders = await privateClient.SpotApi.Trading.GetOrdersAsync(
+    "ETH_USDT",
+    startTime: DateTime.UtcNow.AddDays(-1),
+    endTime: DateTime.UtcNow,
+    limit: 100);
+```
+
+## Public WebSocket Subscriptions
+
+Trade stream:
+
+```csharp
+var socketClient = new PionexSocketClient();
+
+var sub = await socketClient.SpotApi.SubscribeToTradeUpdatesAsync(
+    "BTC_USDT",
+    update =>
+    {
+        foreach (var trade in update.Data)
+        {
+            Console.WriteLine(
+                $"{trade.Side} {trade.Quantity} at {trade.Price}");
+        }
+    });
+
+if (!sub.Success)
+{
+    Console.WriteLine(sub.Error);
+    return;
+}
+
+await socketClient.UnsubscribeAsync(sub.Data);
+```
+
+The trade update data is `PionexTrade[]`, not a single trade.
+
+Order-book stream:
+
+```csharp
+var sub = await socketClient.SpotApi.SubscribeToOrderBookUpdatesAsync(
+    "BTC_USDT",
+    depth: 20,
+    update =>
+    {
+        var bid = update.Data.Bids.FirstOrDefault()?.Price;
+        var ask = update.Data.Asks.FirstOrDefault()?.Price;
+        Console.WriteLine($"{bid} / {ask}");
+    });
+```
+
+The source interface documents a maximum depth of 100. Do not request an arbitrary unsupported depth.
+
+## Private WebSocket Subscriptions
+
+```csharp
+var socketClient = new PionexSocketClient(options =>
+{
+    options.ApiCredentials = new PionexCredentials(
+        "API_KEY",
+        "API_SECRET");
+});
+
+var orders = await socketClient.SpotApi.SubscribeToOrderUpdatesAsync(
+    "ETH_USDT",
+    update => Console.WriteLine(
+        $"{update.Data.OrderId}: {update.Data.Status}"));
+
+var fills = await socketClient.SpotApi.SubscribeToUserTradeUpdatesAsync(
+    "ETH_USDT",
+    update => Console.WriteLine(update.Data.Price));
+
+var balances = await socketClient.SpotApi.SubscribeToBalanceUpdatesAsync(
+    update => Console.WriteLine(update.Data.Length));
+```
+
+Check each result independently. Unsubscribe only successful results:
+
+```csharp
+if (orders.Success)
+    await socketClient.UnsubscribeAsync(orders.Data);
+```
+
+## SharedApis Multi-Exchange Pattern
+
+Use SharedApis when application logic should not depend on Pionex-specific models:
+
+```csharp
+using CryptoExchange.Net.SharedApis;
+
+ISpotTickerRestClient shared =
+    new PionexRestClient().SpotApi.SharedClient;
+
+var symbol = new SharedSymbol(
+    TradingMode.Spot,
+    "BTC",
+    "USDT");
+
+var result = await shared.GetSpotTickerAsync(
+    new GetTickerRequest(symbol));
+
+if (!result.Success) { Console.WriteLine(result.Error); return; }
+Console.WriteLine(result.Data.LastPrice);
+```
+
+The shared model uses `LastPrice`; the direct `PionexTicker` uses `ClosePrice`. Do not confuse these two model surfaces.
+
+Capability discovery:
+
+```csharp
+var shared = new PionexRestClient().SpotApi.SharedClient;
+var info = shared.Discover();
+
+foreach (var feature in info.Features.Where(x => x.Supported))
+    Console.WriteLine(feature);
+```
+
+Use discovery when selecting functionality dynamically or inspecting request constraints.
+
+## Shared Interface Coverage
+
+Pionex Spot shared REST client implements:
+
+- `IBalanceRestClient`
+- `IBookTickerRestClient`
+- `IKlineRestClient`
+- `IOrderBookRestClient`
+- `IRecentTradeRestClient`
+- `ISpotSymbolRestClient`
+- `ISpotTickerRestClient`
+- `ISpotOrderRestClient`
+
+Pionex Spot shared socket client implements:
+
+- `ITradeSocketClient`
+- `IOrderBookSocketClient`
+- `IBookTickerSocketClient`
+- `ISpotOrderSocketClient`
+- `IUserTradeSocketClient`
+- `IBalanceSocketClient`
+
+Do not assume unsupported shared futures, position, funding, withdrawal, or deposit interfaces.
+
+## Local Order Books
+
+`IPionexOrderBookFactory` creates managed local Spot order books:
+
+```csharp
+var book = orderBookFactory.CreateSpot("BTC_USDT");
+```
+
+It also supports structured shared symbols:
+
+```csharp
+var book = orderBookFactory.Create(
+    new SharedSymbol(TradingMode.Spot, "BTC", "USDT"));
+```
+
+Use the factory rather than manually combining REST snapshots and socket updates. Manage the created order book according to the CryptoExchange.Net order-book lifecycle.
+
+## User-Specific Clients
+
+`IPionexUserClientProvider` caches authenticated clients by user identifier:
+
+```csharp
+provider.InitializeUserClient(
+    "user-123",
+    new PionexCredentials("API_KEY", "API_SECRET"));
+
+var userRest = provider.GetRestClient("user-123");
+var userSocket = provider.GetSocketClient("user-123");
+```
+
+Use `ClearUserClients(userIdentifier)` when credentials change and `Clear()` to remove all cached clients.
+
+Do not put credentials in log messages or use an unbounded user identifier supplied without application-level validation.
+
+## Environments
+
+Only `PionexEnvironment.Live` is built in:
+
+```csharp
+var client = new PionexRestClient(options =>
+{
+    options.Environment = PionexEnvironment.Live;
+});
+```
+
+There is no built-in testnet environment.
+
+Custom endpoints can be represented explicitly:
+
+```csharp
+var environment = PionexEnvironment.CreateCustom(
+    "custom",
+    "https://example-rest",
+    "wss://example-socket");
+
+var client = new PionexRestClient(options =>
+{
+    options.Environment = environment;
+});
+```
+
+Do not invent `PionexEnvironment.Testnet`.
+
+## Error-Handling Guidance
+
+- Check `.Success` for every result.
+- Surface `Error.Code`, `Error.Message`, and `Error.ErrorType` where useful.
+- Retry only `Error.IsTransient == true`.
+- Use bounded retries with backoff and cancellation.
+- Do not retry validation failures, authentication failures, insufficient balances, or rejected orders without changing the request or state.
+- Do not log API secrets.
+- Do not assume a failed order placement has no exchange-side effect when transport state is uncertain; reconcile using client order ID or order queries.
+- Use unique client order IDs when application-level idempotency and reconciliation are required.
+
+## Async and Lifetime Guidance
+
+- Use `await`.
+- Do not use `.Result`, `.Wait()`, or blocking sleeps.
+- Pass `CancellationToken` through service boundaries.
+- Reuse REST and socket clients.
+- Unsubscribe streams during graceful shutdown.
+- Keep subscription callbacks fast; dispatch expensive work to an appropriate queue or worker.
+- Handle reconnection-aware subscription lifecycle through the returned `UpdateSubscription`.
+
+## Common Hallucinations to Reject
+
+Reject code containing any of these unless the library source has changed:
+
+- `PionexRestClient.FuturesApi`
+- `PionexRestClient.UsdtFuturesApi`
+- `PionexRestClient.UnifiedApi`
+- `PionexRestClient.MarginApi`
+- `PionexEnvironment.Testnet`
+- `PionexCredentials(key, secret, passphrase)`
+- `StartUserStreamAsync`
+- `GetListenKeyAsync`
+- `SubscribeToTickerUpdatesAsync` on the direct Pionex socket API
+- `SubscribeToKlineUpdatesAsync` on the direct Pionex socket API
+- `ticker.Data.LastPrice` for a direct `PionexTicker`
+- direct symbols such as `BTCUSDT` or `BTC-USDT`
+- result types described as `WebCallResult<T>` or `CallResult<UpdateSubscription>`
+
+The current result types are `HttpResult<T>`, `HttpResult`, and `WebSocketResult<UpdateSubscription>`.
+
+## Source of Truth for Method Names
+
+Check these source interfaces before generating unfamiliar code:
+
+```text
+Pionex.Net/Interfaces/Clients/IPionexRestClient.cs
+Pionex.Net/Interfaces/Clients/IPionexSocketClient.cs
+Pionex.Net/Interfaces/Clients/SpotApi/IPionexRestClientSpotApi.cs
+Pionex.Net/Interfaces/Clients/SpotApi/IPionexRestClientSpotApiExchangeData.cs
+Pionex.Net/Interfaces/Clients/SpotApi/IPionexRestClientSpotApiAccount.cs
+Pionex.Net/Interfaces/Clients/SpotApi/IPionexRestClientSpotApiTrading.cs
+Pionex.Net/Interfaces/Clients/SpotApi/IPionexSocketClientSpotApi.cs
+Pionex.Net/Interfaces/Clients/SpotApi/IPionexRestClientSpotApiShared.cs
+Pionex.Net/Interfaces/Clients/SpotApi/IPionexSocketClientSpotApiShared.cs
+```
+
+Check models under `Pionex.Net/Objects/Models/` and enums under `Pionex.Net/Enums/`.
+
+## AI-Friendly Examples
+
+Each file in `Examples/ai-friendly/` is self-contained and can be copied into a console application's `Program.cs`:
+
+- `01-spot-quickstart.cs`: public ticker and order book, credentials, balances
+- `02-spot-trading.cs`: limit order placement, lookup, cancellation
+- `03-websocket.cs`: public trades/order book, private balances, teardown
+- `04-multi-exchange.cs`: CryptoExchange.Net SharedApis
+- `05-error-handling.cs`: `HttpResult<T>`, metadata, transient retry
+
+Private examples can affect a real account. Replace placeholder credentials, validate symbol rules and balances, and review all order values before execution.
+
+## Anti-Hallucination Checklist
+
+Before returning Pionex.Net code, confirm:
+
+- The package is `Pionex.Net`.
+- The code uses `PionexRestClient` or `PionexSocketClient`.
+- Private code uses `PionexCredentials(key, secret)`.
+- The API root is `SpotApi`.
+- The method exists in the current interface source.
+- Direct symbols contain an underscore.
+- Direct enums come from `Pionex.Net.Enums`.
+- Every result is checked before `.Data`.
+- Ticker arrays are handled as arrays.
+- Direct ticker code uses `ClosePrice`.
+- Market buy/sell quantity semantics are correct.
+- Private socket code does not request a listen key.
+- Socket code stores and unsubscribes successful subscriptions.
+- No unsupported futures or derivatives feature is implied.
+
+## Repository AI Files
+
+- `llms.txt`: short link-oriented index and critical rules
+- `llms-full.txt`: this detailed context
+- `AGENTS.md`: assistant skill and compact generation guide
+- `.github/copilot-instructions.md`: GitHub Copilot repository instructions
+- `.cursor/rules/Pionex-net.mdc`: Cursor rule
+- `Examples/ai-friendly/`: compilable focused examples
+
+## External References
+
+- Repository: https://github.com/JKorf/Pionex.Net
+- NuGet: https://www.nuget.org/packages/Pionex.Net
+- Pionex API documentation: https://www.pionex.com/docs/api-docs
+- CryptoExchange.Net: https://github.com/JKorf/CryptoExchange.Net
+- CryptoExchange.Net documentation: https://cryptoexchange.jkorf.dev/client-libs/getting-started
+- CryptoClients.Net: https://github.com/JKorf/CryptoClients.Net

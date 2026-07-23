@@ -1,0 +1,6 @@
+>1 {"op": "SUBSCRIBE", "topic": "TRADE", "symbol": "BTC_USDT"}
+>2 {"op": "SUBSCRIBE", "topic": "TRADE", "symbol": "ETH_USDT"}
+<1 {"type": "SUBSCRIBED", "topic": "TRADE", "symbol": "BTC_USDT"}
+<2 {"type": "SUBSCRIBED", "topic": "TRADE", "symbol": "ETH_USDT"}
+=1 { "topic": "TRADE", "symbol": "BTC_USDT", "timestamp": 1566691672311, "data": []}
+=2 { "topic": "TRADE", "symbol": "ETH_USDT", "timestamp": 1566691672311, "data": []}

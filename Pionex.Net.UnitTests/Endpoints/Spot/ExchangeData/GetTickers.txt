@@ -1,0 +1,23 @@
+GET
+/api/v1/market/tickers
+false
+UriParams: {}
+{
+  "result": true,
+  "timestamp": 1,
+  "data": {
+    "tickers": [
+      {
+        "symbol": "123",
+        "time": 1,
+        "open": "123",
+        "close": "123",
+        "high": "123",
+        "low": "123",
+        "volume": "123",
+        "amount": "123",
+        "count": "123"
+      }
+    ]
+  }
+}

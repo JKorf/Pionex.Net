@@ -1,0 +1,31 @@
+GET
+/api/v1/trade/allOrders
+true
+UriParams: {"symbol": "ETH_USDT"}
+{
+  "result": true,
+  "timestamp": 1,
+  "data": {
+    "orders": [
+      {
+        "orderId": 1,
+        "symbol": "123",
+        "type": "LIMIT",
+        "side": "BUY",
+        "price": "123",
+        "size": "123",
+        "amount": "123",
+        "filledSize": "123",
+        "filledAmount": "123",
+        "fee": "123",
+        "feeCoin": "123",
+        "status": "OPEN",
+        "IOC": true,
+        "clientOrderId": "123",
+        "source": "MANUAL",
+        "createTime": 1,
+        "updateTime": 1
+      }
+    ]
+  }
+}

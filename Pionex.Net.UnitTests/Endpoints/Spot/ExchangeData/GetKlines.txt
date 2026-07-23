@@ -1,0 +1,20 @@
+GET
+/api/v1/market/klines
+false
+UriParams: {"symbol": "ETH_USDT","interval": "1M"}
+{
+  "result": true,
+  "timestamp": 1,
+  "data": {
+    "klines": [
+      {
+        "time": 1,
+        "open": "123",
+        "close": "123",
+        "high": "123",
+        "low": "123",
+        "volume": "123"
+      }
+    ]
+  }
+}

@@ -1,0 +1,18 @@
+> {"op": "SUBSCRIBE", "topic": "TRADE", "symbol": "ETH_USDT"}
+< {"type": "SUBSCRIBED", "topic": "TRADE", "symbol": "ETH_USDT"}
+= 
+{
+  "topic": "TRADE",
+  "symbol": "ETH_USDT",
+  "timestamp": 1566691672311,
+  "data": [
+    {
+      "symbol": "ETH_USDT",
+      "tradeId": "600848671",
+      "price": "7962.62",
+      "size": "0.0122",
+      "side": "BUY",
+      "timestamp": 1566691672311
+    }
+  ]
+}

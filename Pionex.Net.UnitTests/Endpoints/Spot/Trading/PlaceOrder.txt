@@ -1,0 +1,12 @@
+POST
+/api/v1/trade/order
+true
+BodyParams: {"symbol": "ETH_USDT","side": "BUY","type": "LIMIT"}
+{
+  "result": true,
+  "timestamp": 1,
+  "data": {
+    "orderId": 1,
+    "clientOrderId": "text"
+  }
+}

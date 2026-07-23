@@ -1,0 +1,11 @@
+GET
+/api/v1/market/depth
+false
+UriParams: {"symbol": "ETH_USDT"}
+{
+  "result": true,
+  "timestamp": 1,
+  "data": {
+    "updateTime": 1
+  }
+}

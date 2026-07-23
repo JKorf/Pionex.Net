@@ -1,0 +1,8 @@
+DELETE
+/api/v1/trade/allOrders
+true
+BodyParams: {"symbol": "ETH_USDT"}
+{
+  "result": true,
+  "timestamp": 1
+} 

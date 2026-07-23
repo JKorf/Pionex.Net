@@ -1,0 +1,22 @@
+GET
+/api/v1/account/balances
+true
+UriParams: {}
+{
+  "result": true,
+  "data": {
+    "balances": [
+      {
+        "coin": "BTC",
+        "free": "0.90000000",
+        "frozen": "0.00000000"
+      },
+      {
+        "coin": "USDT",
+        "free": "100.00000000",
+        "frozen": "900.00000000"
+      }
+    ]
+  },
+  "timestamp": 1566691672311
+}

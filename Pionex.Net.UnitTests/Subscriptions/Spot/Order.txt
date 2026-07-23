@@ -1,0 +1,25 @@
+> {"op": "SUBSCRIBE", "topic": "ORDER", "symbol": "ETH_USDT"}
+< {"type": "SUBSCRIBED", "topic": "ORDER", "symbol": "ETH_USDT"}
+= 
+{
+  "topic": "ORDER",
+  "symbol": "ETH_USDT",
+  "timestamp": 1,
+  "data": {
+    "orderId": 1,
+    "symbol": "123",
+    "type": "LIMIT",
+    "side": "BUY",
+    "price": "123",
+    "size": "123",
+    "filledSize": "123",
+    "filledAmount": "123",
+    "fee": "123",
+    "feeCoin": "123",
+    "IOC": true,
+    "status": "OPEN",
+    "clientOrderId": "123",
+    "createTime": 1,
+    "updateTime": 1
+  }
+}

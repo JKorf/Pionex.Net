@@ -1,0 +1,115 @@
+---
+description: Conventions for using Pionex.Net for Pionex cryptocurrency exchange access in C#/.NET.
+globs:
+  - "**/*.cs"
+  - "**/*.csproj"
+alwaysApply: false
+---
+
+# Pionex.Net Conventions
+
+Use `PionexRestClient` and `PionexSocketClient`. Do not write raw Pionex HTTP signing or WebSocket protocol code.
+
+Pionex.Net currently implements Spot only. Never invent futures, perpetual, margin, options, or other derivatives clients.
+
+## Setup
+
+```csharp
+using Pionex.Net;
+using Pionex.Net.Clients;
+
+var publicClient = new PionexRestClient();
+var privateClient = new PionexRestClient(options =>
+{
+    options.ApiCredentials = new PionexCredentials("API_KEY", "API_SECRET");
+});
+```
+
+Reuse clients or use `services.AddPionex(...)`.
+
+## Result Pattern
+
+REST methods return `HttpResult<T>` or `HttpResult`. Socket subscriptions return `WebSocketResult<UpdateSubscription>`.
+
+```csharp
+var tickers = await publicClient.SpotApi.ExchangeData.GetTickersAsync("BTC_USDT");
+if (!tickers.Success) { Console.WriteLine(tickers.Error); return; }
+var price = tickers.Data.Single().ClosePrice;
+```
+
+Always check `.Success` before `.Data`. Retry only transient errors.
+
+## API Surface
+
+- `restClient.SpotApi.ExchangeData`
+- `restClient.SpotApi.Account`
+- `restClient.SpotApi.Trading`
+- `socketClient.SpotApi`
+- `.SpotApi.SharedClient` for CryptoExchange.Net SharedApis
+
+## Direct API Rules
+
+- Symbols use underscores: `BTC_USDT`.
+- Ticker and book-ticker calls return arrays even with a symbol filter.
+- `PionexTicker.ClosePrice` is the current close/last value; do not invent `LastPrice`.
+- Limit orders use `quantity` and `price`.
+- Market buys use `quoteQuantity`; market sells use `quantity`.
+- Private sockets use credentials configured directly on `PionexSocketClient`.
+- There is no listen-key workflow.
+- Direct public sockets expose trade and order-book updates, not ticker or kline subscriptions.
+
+## Order Pattern
+
+```csharp
+using Pionex.Net.Enums;
+
+var order = await privateClient.SpotApi.Trading.PlaceOrderAsync(
+    symbol: "ETH_USDT",
+    side: OrderSide.Buy,
+    type: OrderType.Limit,
+    quantity: 0.01m,
+    price: 2000m);
+
+if (!order.Success) { Console.WriteLine(order.Error); return; }
+```
+
+Validate precision and limits using `GetSymbolsAsync` before placing real orders.
+
+## Socket Pattern
+
+```csharp
+var socketClient = new PionexSocketClient();
+var sub = await socketClient.SpotApi.SubscribeToOrderBookUpdatesAsync(
+    "BTC_USDT",
+    20,
+    update => Console.WriteLine(update.Data.Bids.FirstOrDefault()?.Price));
+
+if (!sub.Success) { Console.WriteLine(sub.Error); return; }
+await socketClient.UnsubscribeAsync(sub.Data);
+```
+
+## SharedApis
+
+```csharp
+using CryptoExchange.Net.SharedApis;
+
+var shared = new PionexRestClient().SpotApi.SharedClient;
+var ticker = await shared.GetSpotTickerAsync(
+    new GetTickerRequest(new SharedSymbol(TradingMode.Spot, "BTC", "USDT")));
+```
+
+Use `shared.Discover()` to inspect supported features and options.
+
+## Hard Rules
+
+- Never use raw HTTP for covered Pionex operations.
+- Never use generic `ApiCredentials`; use `PionexCredentials`.
+- Never use `.Result` or `.Wait()`.
+- Never access `.Data` before `.Success`.
+- Never create a new client per request.
+- Never use another exchange's enums, models, symbols, or method names.
+- Never invent unsupported API roots or subscription methods.
+- Always unsubscribe successful socket subscriptions.
+- Verify unfamiliar calls against `Pionex.Net/Interfaces/Clients/**`.
+
+See `AGENTS.md`, `llms-full.txt`, and `Examples/ai-friendly/` for complete patterns.

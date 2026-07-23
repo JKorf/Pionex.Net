@@ -1,0 +1,20 @@
+GET
+/api/v1/market/bookTickers
+false
+UriParams: {}
+{
+  "result": true,
+  "timestamp": 1,
+  "data": {
+    "tickers": [
+      {
+        "symbol": "123",
+        "bidPrice": "123",
+        "bidSize": "123",
+        "askPrice": "123",
+        "askSize": "123",
+        "timestamp": "123"
+      }
+    ]
+  }
+}

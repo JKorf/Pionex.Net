@@ -1,0 +1,24 @@
+GET
+/api/v1/trade/fillsByOrderId
+true
+UriParams: {"orderId": 123}
+{
+  "result": true,
+  "timestamp": 1,
+  "data": {
+    "fills": [
+      {
+        "id": 1,
+        "orderId": 1,
+        "symbol": "123",
+        "side": "BUY",
+        "role": "TAKER",
+        "price": "123",
+        "size": "123",
+        "fee": "123",
+        "feeCoin": "123",
+        "timestamp": 1
+      }
+    ]
+  }
+}

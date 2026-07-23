@@ -1,0 +1,30 @@
+> {"op": "SUBSCRIBE", "topic": "DEPTH", "symbol": "ETH_USDT", "limit": 5}
+< {"type": "SUBSCRIBED", "topic": "DEPTH", "symbol": "ETH_USDT"}
+= 
+{
+  "topic": "DEPTH",
+  "symbol": "ETH_USDT",
+  "timestamp": 1566691672311,
+  "data": {
+    "bids": [
+      [
+        "27964.01",
+        "0.0675"
+      ],
+      [
+        "27963.23",
+        "0.9111"
+      ]
+    ],
+    "asks": [
+      [
+        "27979.32",
+        "0.0731"
+      ],
+      [
+        "27980.97",
+        "1.0294"
+      ]
+    ]
+  }
+}

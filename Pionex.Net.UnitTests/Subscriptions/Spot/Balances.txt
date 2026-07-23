@@ -1,0 +1,22 @@
+> {"op": "SUBSCRIBE", "topic": "BALANCE"}
+< {"type": "SUBSCRIBED", "topic": "BALANCE"}
+= 
+{
+  "topic": "BALANCE",
+  "timestamp": 1566691672311,
+  "data": {
+    "balances": [
+      {
+        "coin": "BTC",
+        "free": "0.90000000",
+        "frozen": "0.00000000"
+      },
+      {
+        "coin": "USDT",
+        "free": "100.00000000",
+        "frozen": "900.00000000"
+      }
+    ],
+    "timestamp": 1566691672311
+  }
+}

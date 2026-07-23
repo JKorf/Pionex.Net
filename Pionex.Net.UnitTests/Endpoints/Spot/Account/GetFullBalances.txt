@@ -1,0 +1,44 @@
+GET
+/api/v1/wallet/balancesFull
+true
+UriParams: {}
+{
+  "result": true,
+  "timestamp": 1714000000000,
+  "data": {
+    "prices": {
+      "BTC": {
+        "priceInUsd": "67000.00",
+        "priceInBtc": "1",
+        "change24hInUsd": "1200.00",
+        "change24hInBtc": "0",
+        "fullName": "Bitcoin"
+      },
+      "ETH": {
+        "priceInUsd": "3200.00",
+        "priceInBtc": "0.04776",
+        "change24hInUsd": "50.00",
+        "change24hInBtc": "-0.00012",
+        "fullName": "Ethereum"
+      }
+    },
+    "totalInUsdt": "12345.67",
+    "totalInBtc": "0.18426",
+    "botAccount": {
+      "totalInUsdt": "8000.00",
+      "detail": [
+        {
+          "type": "spot",
+          "title": "Spot",
+          "totalInUsdt": "5000.00",
+          "hasMore": false,
+          "count": 3
+        }
+      ]
+    },
+    "traderAccount": {
+      "totalInUsdt": "4345.67",
+      "title": "Futures"
+    }
+  }
+}

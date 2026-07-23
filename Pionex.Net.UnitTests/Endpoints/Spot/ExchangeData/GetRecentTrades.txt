@@ -1,0 +1,20 @@
+GET
+/api/v1/market/trades
+false
+UriParams: {"symbol": "ETH_USDT"}
+{
+  "result": true,
+  "timestamp": 1,
+  "data": {
+    "trades": [
+      {
+        "symbol": "ETH_USDT",
+        "tradeId": "123",
+        "price": "123",
+        "size": "123",
+        "side": "BUY",
+        "timestamp": "123"
+      }
+    ]
+  }
+}

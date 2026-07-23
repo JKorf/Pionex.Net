@@ -1,0 +1,45 @@
+# Pionex.Net
+
+> Strongly typed .NET client library for the Pionex REST and WebSocket APIs. Pionex.Net currently exposes Spot trading and is part of the CryptoExchange.Net ecosystem.
+
+Pionex.Net provides typed REST clients, WebSocket subscriptions with automatic connection management, HMAC credentials through `PionexCredentials`, dependency injection helpers, local order books, user client management, Native AOT support, and exchange-agnostic CryptoExchange.Net SharedApis. It targets netstandard2.0, netstandard2.1, net8.0, net9.0, and net10.0.
+
+Direct and SharedApis REST methods return `HttpResult<T>` or `HttpResult`. Direct and SharedApis WebSocket subscriptions return `WebSocketResult<UpdateSubscription>`. Always check `.Success` before accessing `.Data`. Pionex symbols use an underscore, for example `BTC_USDT`.
+
+## Critical Usage Rules
+
+- Use `PionexRestClient` for REST and `PionexSocketClient` for subscriptions.
+- Configure private clients with `new PionexCredentials("API_KEY", "API_SECRET")`.
+- Route REST calls through `SpotApi.ExchangeData`, `SpotApi.Account`, or `SpotApi.Trading`.
+- Route all direct WebSocket subscriptions through `socketClient.SpotApi`.
+- Pionex.Net currently has no futures, margin, options, or derivatives API client.
+- `GetTickersAsync` and `GetBookTickersAsync` return arrays even when filtering one symbol.
+- For market buys, pass `quoteQuantity`; for market sells, pass `quantity`.
+- Private socket subscriptions use credentials on `PionexSocketClient`; there is no listen-key workflow.
+- Store successful `UpdateSubscription` values and unsubscribe with `UnsubscribeAsync`.
+- Use `.SpotApi.SharedClient` for CryptoExchange.Net SharedApis code and `Discover()` for runtime capability metadata.
+
+## Documentation
+
+- [README](https://github.com/JKorf/Pionex.Net/blob/main/README.md): Overview, installation, features, and basic usage
+- [Full LLM Context](https://github.com/JKorf/Pionex.Net/blob/main/llms-full.txt): Detailed endpoint routing, patterns, pitfalls, and anti-hallucination rules
+- [Assistant Guide](https://github.com/JKorf/Pionex.Net/blob/main/AGENTS.md): Compact code-generation guidance
+- [CryptoExchange.Net Documentation](https://cryptoexchange.jkorf.dev/client-libs/getting-started): Shared client concepts, result processing, dependency injection, and WebSocket behavior
+
+## Examples
+
+- [AI-friendly examples](https://github.com/JKorf/Pionex.Net/tree/main/Examples/ai-friendly): Self-contained examples optimized for coding assistants
+- [Spot Quickstart](https://github.com/JKorf/Pionex.Net/blob/main/Examples/ai-friendly/01-spot-quickstart.cs): Public ticker/order book and authenticated balances
+- [Spot Trading](https://github.com/JKorf/Pionex.Net/blob/main/Examples/ai-friendly/02-spot-trading.cs): Limit order placement, lookup, and cancellation
+- [WebSocket Streams](https://github.com/JKorf/Pionex.Net/blob/main/Examples/ai-friendly/03-websocket.cs): Public trades/order book, private balances, and teardown
+- [Multi-Exchange Pattern](https://github.com/JKorf/Pionex.Net/blob/main/Examples/ai-friendly/04-multi-exchange.cs): CryptoExchange.Net SharedApis
+- [Error Handling](https://github.com/JKorf/Pionex.Net/blob/main/Examples/ai-friendly/05-error-handling.cs): `HttpResult<T>`, error metadata, and transient retry
+- [Full examples directory](https://github.com/JKorf/Pionex.Net/tree/main/Examples): Console, API, order placement, order book, and tracker projects
+
+## Reference
+
+- [NuGet package](https://www.nuget.org/packages/Pionex.Net)
+- [Pionex API documentation](https://www.pionex.com/docs/api-docs)
+- [CryptoExchange.Net](https://github.com/JKorf/CryptoExchange.Net)
+- [CryptoClients.Net](https://github.com/JKorf/CryptoClients.Net)
+- [GitHub issues](https://github.com/JKorf/Pionex.Net/issues)

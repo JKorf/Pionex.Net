@@ -1,0 +1,33 @@
+GET
+/api/v1/common/symbols
+false
+UriParams: {}
+{
+  "result": true,
+  "timestamp": 1,
+  "data": {
+    "symbols": [
+      {
+        "symbol": "BTC_USDT",
+        "name": "123",
+        "type": "SPOT",
+        "baseCurrency": "BTC",
+        "quoteCurrency": "USDT",
+        "basePrecision": 1,
+        "quotePrecision": 1,
+        "amountPrecision": 1,
+        "minNotional": "123",
+        "minAmount": "10",
+        "minTradeSize": "123",
+        "maxTradeSize": "123",
+        "minTradeDumping": "123",
+        "maxTradeDumping": "123",
+        "buyCeiling": "123",
+        "sellFloor": "123",
+        "enable": true,
+        "maxImpactMarket": "123",
+        "liquidationFeeRate": "123"
+      }
+    ]
+  }
+}
