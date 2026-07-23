@@ -44,33 +44,6 @@ namespace Pionex.Net
         public static string ExchangeName => "Pionex";
 
         /// <summary>
-        /// Display name
-        /// </summary>
-        public static string DisplayName => "Pionex";
-
-        /// <summary>
-        /// Url to exchange image
-        /// </summary>
-        public static string ImageUrl { get; } = "TODO";
-
-        /// <summary>
-        /// Url to the main website
-        /// </summary>
-        public static string Url { get; } = "https://www.pionex.com/";
-
-        /// <summary>
-        /// Urls to the API documentation
-        /// </summary>
-        public static string[] ApiDocsUrl { get; } = new[] {
-            "https://www.pionex.com/docs/api-docs"
-            };
-
-        /// <summary>
-        /// Type of exchange
-        /// </summary>
-        public static ExchangeType Type { get; } = ExchangeType.CEX;
-
-        /// <summary>
         /// Aliases for Pionex assets
         /// </summary>
         public static AssetAliasConfiguration AssetAliases { get; } = new AssetAliasConfiguration
