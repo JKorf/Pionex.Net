@@ -63,7 +63,9 @@ namespace Pionex.Net
                 sharedSocketClient,
                 symbol,
                 limit,
-                period
+                period,
+                TradeQuantityType.BaseAsset,
+                exchangeParameters
                 );
         }
     }

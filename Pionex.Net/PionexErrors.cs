@@ -14,6 +14,8 @@ namespace Pionex.Net
 
                 new ErrorInfo(ErrorType.UnknownSymbol, false, "Invalid symbol", "MARKET_INVALID_SYMBOL"),
 
+                new ErrorInfo(ErrorType.InvalidParameter, false, "Invalid parameter", "MARKET_PARAMETER_ERROR"),
+
             ]
             );
     }

@@ -39,7 +39,7 @@ namespace Pionex.Net.Clients.SpotApi
                 new SharedTrade(
                     ExchangeSymbolCache.ParseSymbol(_topicId, EnvironmentName, null, x.Symbol),
                     x.Symbol,
-                    x.Quantity,
+                    new SharedOrderQuantity(x.Quantity),
                     x.Price, 
                     x.Timestamp)
             {

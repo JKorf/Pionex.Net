@@ -162,7 +162,15 @@ namespace Pionex.Net.Clients.SpotApi
             return HttpResult.Ok(result,
                 ExchangeHelpers.ApplyFilter(result.Data, x => x.OpenTime, request.StartTime, request.EndTime, direction)
                     .Select(x =>
-                        new SharedKline(request.Symbol, symbol, x.OpenTime, x.ClosePrice, x.HighPrice, x.LowPrice, x.OpenPrice, x.Volume))
+                        new SharedKline(
+                            request.Symbol,
+                            symbol,
+                            x.OpenTime,
+                            x.ClosePrice,
+                            x.HighPrice, 
+                            x.LowPrice, 
+                            x.OpenPrice,
+                            new SharedOrderQuantity(x.Volume)))
                     .ToArray(), nextPageRequest);
 
         }
@@ -210,7 +218,7 @@ namespace Pionex.Net.Clients.SpotApi
 
             // Return
             return HttpResult.Ok(result, result.Data!.Select(x =>
-                new SharedTrade(request.Symbol, symbol, x.Quantity, x.Price, x.Timestamp)
+                new SharedTrade(request.Symbol, symbol, new SharedOrderQuantity(x.Quantity), x.Price, x.Timestamp)
                 {
                     Side = x.Side == Enums.OrderSide.Sell ? SharedOrderSide.Sell : SharedOrderSide.Buy,
                 }).ToArray());
@@ -341,10 +349,9 @@ namespace Pionex.Net.Clients.SpotApi
                     symbol.ClosePrice,
                     symbol.HighPrice,
                     symbol.LowPrice,
-                    symbol.Volume,
+                    new SharedOrderQuantity(symbol.Volume, symbol.VolumeQuote),
                     symbol.OpenPrice > 0 && symbol.ClosePrice > 0 ? Math.Round(symbol.ClosePrice / symbol.OpenPrice * 100 - 100, 4) : null)
             {
-                QuoteVolume = symbol.VolumeQuote
             });
 
         }
@@ -367,10 +374,9 @@ namespace Pionex.Net.Clients.SpotApi
                         x.ClosePrice,
                         x.HighPrice,
                         x.LowPrice,
-                        x.Volume,
+                        new SharedOrderQuantity(x.Volume, x.VolumeQuote),
                         x.OpenPrice > 0 && x.ClosePrice > 0 ? Math.Round(x.ClosePrice / x.OpenPrice * 100 - 100, 4) : null)
                     {
-                        QuoteVolume = x.VolumeQuote
                     }).ToArray());
 
         }
