@@ -106,10 +106,10 @@ namespace Pionex.Net.Clients.SpotApi
             return HttpResult.Ok(resultTicker, new SharedBookTicker(
                 request.Symbol,
                 symbol.Symbol,
-                symbol.AskPrice,
-                symbol.AskQuantity,
-                symbol.BidPrice,
-                symbol.BidQuantity));
+                symbol.AskPrice ?? 0,
+                symbol.AskQuantity ?? 0,
+                symbol.BidPrice ?? 0,
+                symbol.BidQuantity ?? 0));
 
         }
 

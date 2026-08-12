@@ -24,25 +24,25 @@ public record PionexBookTicker
     [JsonPropertyName("symbol")]
     public string Symbol { get; set; } = string.Empty;
     /// <summary>
-    /// ["<c>bidPrice</c>"] Best bid price
+    /// ["<c>bidPrice</c>"] Best bid price, null when no bid is available
     /// </summary>
     [JsonPropertyName("bidPrice")]
-    public decimal BidPrice { get; set; }
+    public decimal? BidPrice { get; set; }
     /// <summary>
-    /// ["<c>bidSize</c>"] Best bid quantity
+    /// ["<c>bidSize</c>"] Best bid quantity, null when no bid is available
     /// </summary>
     [JsonPropertyName("bidSize")]
-    public decimal BidQuantity { get; set; }
+    public decimal? BidQuantity { get; set; }
     /// <summary>
-    /// ["<c>askPrice</c>"] Best ask price
+    /// ["<c>askPrice</c>"] Best ask price, null when no ask is available
     /// </summary>
     [JsonPropertyName("askPrice")]
-    public decimal AskPrice { get; set; }
+    public decimal? AskPrice { get; set; }
     /// <summary>
-    /// ["<c>askSize</c>"] Best ask quantity
+    /// ["<c>askSize</c>"] Best ask quantity, null when no ask is available
     /// </summary>
     [JsonPropertyName("askSize")]
-    public decimal AskQuantity { get; set; }
+    public decimal? AskQuantity { get; set; }
     /// <summary>
     /// ["<c>timestamp</c>"] Timestamp
     /// </summary>
