@@ -68,9 +68,9 @@ namespace Pionex.Net.Clients.SpotApi
                         request.Symbol,
                         symbol,
                         update.Data.Asks[0].Price,
-                        update.Data.Asks[0].Quantity,
+                        new SharedOrderQuantity(update.Data.Asks[0].Quantity),
                         update.Data.Bids[0].Price,
-                        update.Data.Bids[0].Quantity
+                        new SharedOrderQuantity(update.Data.Bids[0].Quantity)
                         ))), ct).ConfigureAwait(false);
 
             return result;
@@ -89,7 +89,7 @@ namespace Pionex.Net.Clients.SpotApi
             var result = await SubscribeToOrderBookUpdatesAsync(
                 symbol,
                 request.Limit ?? 20, 
-                update => handler(update.ToType(new SharedOrderBook(update.Data.Asks, update.Data.Bids))), ct).ConfigureAwait(false);
+                update => handler(update.ToType(new SharedOrderBook(SharedQuantityType.BaseAsset, update.Data.Asks, update.Data.Bids))), ct).ConfigureAwait(false);
 
             return result;
         }
@@ -182,7 +182,7 @@ namespace Pionex.Net.Clients.SpotApi
                         update.Data.OrderId.ToString(),
                         update.Data.Id.ToString(),
                         update.Data.Side == OrderSide.Buy ? SharedOrderSide.Buy : SharedOrderSide.Sell,
-                        update.Data.Quantity,
+                        new SharedOrderQuantity(update.Data.Quantity),
                         update.Data.Price,
                         update.Data.Timestamp)
                     {
