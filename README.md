@@ -228,6 +228,11 @@ Make a one time donation in a crypto currency of your choice. If you prefer to d
 Alternatively, sponsor me on Github using [Github Sponsors](https://github.com/sponsors/JKorf). 
 
 ## Release notes
+* Version 1.2.0 - 21 Aug 2026
+    * Updated to CryptoExchange.Net v12.5.0
+    * Added LowerPriceLimitPercentage, UpperPriceLimitPercentage to SharedSpotSymbol mapping
+    * Fixed SharedSpotSymbol MinTradeQuantity mapping
+
 * Version 1.1.0 - 29 Jul 2026
     * Updated CryptoExchange.Net to version 12.4.0
     * Added calculation of AveragePrice on Shared order models if data is available and AveragePrice is not set
