@@ -2,8 +2,6 @@ using CryptoExchange.Net;
 using CryptoExchange.Net.Objects;
 using CryptoExchange.Net.Objects.Errors;
 using CryptoExchange.Net.SharedApis;
-using CryptoExchange.Net.SharedApis.Interfaces.Rest.V2.Spot.Tickers;
-using CryptoExchange.Net.SharedApis.Interfaces.Rest.V2.SpotUserTrades;
 using Pionex.Net.Enums;
 using Pionex.Net.Interfaces.Clients.SpotApi;
 using Pionex.Net.Objects.Models;
@@ -15,16 +13,16 @@ using System.Threading.Tasks;
 
 namespace Pionex.Net.Clients.SpotApi
 {
-    internal partial class PionexRestClientSpotApi : IPionexRestClientSpotApiShared
+    internal class PionexRestClientSpotSharedApi : 
+        SharedApiBase,
+        IPionexRestClientSpotApiShared,
+        IPionexRestClientSpotSharedApi
     {
+        private readonly PionexRestClientSpotApi _api;
+
         private const string _topicId = "PionexSpot";
         private const string _exchangeName = "Pionex";
-
-        public TradingMode[] SupportedTradingModes => new[] { TradingMode.Spot };
-
-        public void SetDefaultExchangeParameter(string key, object value) => ExchangeParameters.SetStaticParameter(Exchange, key, value);
-        public void ResetDefaultExchangeParameters() => ExchangeParameters.ResetStaticParameters();
-        public SharedClientInfo Discover() => SharedUtils.GetClientInfo(PionexExchange.Metadata, this);
+        public override SharedClientInfo Discover() => SharedUtils.GetClientInfo(PionexExchange.Metadata, this);
 
         private readonly HashSet<string> _knownCommodities = [ 
             "BNOX",  // Brent crude oil
@@ -64,16 +62,44 @@ namespace Pionex.Net.Clients.SpotApi
             "XEX", "XLBX", "XLEX", "XLKX", "XMEX", "XOMX", "XOVRX", "XYZ"
             ];
 
-        #region Balance Client
-        GetBalancesOptions IGetBalancesRestClient.GetBalancesOptions { get; } = new GetBalancesOptions(_exchangeName, AccountTypeFilter.Spot);
-
-        async Task<HttpResult<SharedBalance[]>> IGetBalancesRestClient.GetBalancesAsync(GetBalancesRequest request, CancellationToken ct)
+        public PionexRestClientSpotSharedApi(PionexRestClientSpotApi api)
+            : base(
+                  api.Exchange,
+                  [TradingMode.Spot],
+                  () => api.Authenticated,
+                  api.FormatSymbol)
         {
-            var validationError = SharedClient.GetBalancesOptions.ValidateRequest(request, this);
-            if (validationError != null)
-            return HttpResult.Fail<SharedBalance[]>(Exchange, validationError);
+            _api = api;
 
-            var result = await Account.GetBalancesAsync(ct: ct).ConfigureAwait(false);
+            SetEndpointOptions(
+                GetBalancesOptions,
+                GetBookTickerOptions,
+                GetKlinesOptions,
+                GetOrderBookOptions,
+                GetRecentTradesOptions,
+                GetSpotSymbolsOptions,
+                GetSpotTickerOptions,
+                GetAllSpotTickersOptions,
+                PlaceSpotOrderOptions,
+                GetSpotOrderOptions,
+                GetOpenSpotOrdersOptions,
+                GetClosedSpotOrdersOptions,
+                GetSpotOrderTradesOptions,
+                GetSpotUserTradeHistoryOptions,
+                CancelSpotOrderOptions
+            );
+        }
+
+        #region Balance Client
+        public GetBalancesOptions GetBalancesOptions { get; } = new GetBalancesOptions(_exchangeName, AccountTypeFilter.Spot);
+
+        public async Task<HttpResult<SharedBalance[]>> GetBalancesAsync(GetBalancesRequest request, CancellationToken ct)
+        {
+            var validationError = GetBalancesOptions.ValidateRequest(request, this);
+            if (validationError != null)
+            return HttpResult.Fail<SharedBalance[]>(_exchangeName, validationError);
+
+            var result = await _api.Account.GetBalancesAsync(ct: ct).ConfigureAwait(false);
             if (!result.Success)
                 return HttpResult.Fail<SharedBalance[]>(result);
 
@@ -89,15 +115,15 @@ namespace Pionex.Net.Clients.SpotApi
 
         #region Book Ticker client
 
-        GetBookTickerOptions IGetBookTickerRestClient.GetBookTickerOptions { get; }
+        public GetBookTickerOptions GetBookTickerOptions { get; }
             = new GetBookTickerOptions(_exchangeName, false);
-        async Task<HttpResult<SharedBookTicker>> IGetBookTickerRestClient.GetBookTickerAsync(GetBookTickerRequest request, CancellationToken ct)
+        public async Task<HttpResult<SharedBookTicker>> GetBookTickerAsync(GetBookTickerRequest request, CancellationToken ct)
         {
-            var validationError = SharedClient.GetBookTickerOptions.ValidateRequest(request, this);
+            var validationError = GetBookTickerOptions.ValidateRequest(request, this);
             if (validationError != null)
-                return HttpResult.Fail<SharedBookTicker>(Exchange, validationError);
+                return HttpResult.Fail<SharedBookTicker>(_exchangeName,  validationError);
 
-            var resultTicker = await ExchangeData.GetBookTickersAsync(request.Symbol!.GetSymbol(FormatSymbol), ct: ct).ConfigureAwait(false);
+            var resultTicker = await _api.ExchangeData.GetBookTickersAsync(request.Symbol!.GetSymbol(FormatSymbol), ct: ct).ConfigureAwait(false);
             if (!resultTicker.Success)
                 return HttpResult.Fail<SharedBookTicker>(resultTicker);
 
@@ -119,7 +145,7 @@ namespace Pionex.Net.Clients.SpotApi
 
         #region Klines Client
 
-        GetKlinesOptions IGetKlinesRestClient.GetKlinesOptions { get; } = new GetKlinesOptions(_exchangeName, false, true, true, 500, false, [
+        public GetKlinesOptions GetKlinesOptions { get; } = new GetKlinesOptions(_exchangeName, false, true, true, 500, false, [
             SharedKlineInterval.OneMinute,
             SharedKlineInterval.FiveMinutes,
             SharedKlineInterval.FifteenMinutes,
@@ -130,11 +156,11 @@ namespace Pionex.Net.Clients.SpotApi
             SharedKlineInterval.TwelveHours,
             SharedKlineInterval.OneDay
             ]);
-        async Task<HttpResult<SharedKline[]>> IGetKlinesRestClient.GetKlinesAsync(GetKlinesRequest request, PageRequest? pageRequest, CancellationToken ct)
+        public async Task<HttpResult<SharedKline[]>> GetKlinesAsync(GetKlinesRequest request, PageRequest? pageRequest, CancellationToken ct)
         {
-            var validationError = SharedClient.GetKlinesOptions.ValidateRequest(request, this);
+            var validationError = GetKlinesOptions.ValidateRequest(request, this);
             if (validationError != null)
-                return HttpResult.Fail<SharedKline[]>(Exchange, validationError);
+                return HttpResult.Fail<SharedKline[]>(_exchangeName,  validationError);
 
             var direction = DataDirection.Descending;
             var symbol = request.SymbolName(FormatSymbol);
@@ -142,7 +168,7 @@ namespace Pionex.Net.Clients.SpotApi
             var pageParams = Pagination.GetPaginationParameters(direction, limit, request.StartTime, request.EndTime ?? DateTime.UtcNow, pageRequest, false);
 
             // Get data
-            var result = await ExchangeData.GetKlinesAsync(
+            var result = await _api.ExchangeData.GetKlinesAsync(
                 symbol,
                 (Enums.KlineInterval)request.Interval,
                 pageParams.EndTime,
@@ -180,14 +206,14 @@ namespace Pionex.Net.Clients.SpotApi
         #endregion
 
         #region Order Book client
-        GetOrderBookOptions IGetOrderBookRestClient.GetOrderBookOptions { get; } = new GetOrderBookOptions(_exchangeName, 1, 1000, false);
-        async Task<HttpResult<SharedOrderBook>> IGetOrderBookRestClient.GetOrderBookAsync(GetOrderBookRequest request, CancellationToken ct)
+        public GetOrderBookOptions GetOrderBookOptions { get; } = new GetOrderBookOptions(_exchangeName, 1, 1000, false);
+        public async Task<HttpResult<SharedOrderBook>> GetOrderBookAsync(GetOrderBookRequest request, CancellationToken ct)
         {
-            var validationError = SharedClient.GetOrderBookOptions.ValidateRequest(request, this);
+            var validationError = GetOrderBookOptions.ValidateRequest(request, this);
             if (validationError != null)
-                return HttpResult.Fail<SharedOrderBook>(Exchange, validationError);
+                return HttpResult.Fail<SharedOrderBook>(_exchangeName,  validationError);
 
-            var result = await ExchangeData.GetOrderBookAsync(
+            var result = await _api.ExchangeData.GetOrderBookAsync(
                 request.Symbol!.GetSymbol(FormatSymbol),
                 limit: request.Limit,
                 ct: ct).ConfigureAwait(false);
@@ -201,17 +227,17 @@ namespace Pionex.Net.Clients.SpotApi
         #endregion
 
         #region Recent Trades client
-        GetRecentTradesOptions IGetRecentTradesRestClient.GetRecentTradesOptions { get; } = new GetRecentTradesOptions(_exchangeName, 500, false);
+        public GetRecentTradesOptions GetRecentTradesOptions { get; } = new GetRecentTradesOptions(_exchangeName, 500, false);
 
-        async Task<HttpResult<SharedTrade[]>> IGetRecentTradesRestClient.GetRecentTradesAsync(GetRecentTradesRequest request, CancellationToken ct)
+        public async Task<HttpResult<SharedTrade[]>> GetRecentTradesAsync(GetRecentTradesRequest request, CancellationToken ct)
         {
-            var validationError = SharedClient.GetRecentTradesOptions.ValidateRequest(request, this);
+            var validationError = GetRecentTradesOptions.ValidateRequest(request, this);
             if (validationError != null)
-                return HttpResult.Fail<SharedTrade[]>(Exchange, validationError);
+                return HttpResult.Fail<SharedTrade[]>(_exchangeName,  validationError);
 
             // Get data
             var symbol = request.Symbol!.GetSymbol(FormatSymbol);
-            var result = await ExchangeData.GetRecentTradesAsync(
+            var result = await _api.ExchangeData.GetRecentTradesAsync(
                 symbol,
                 limit: request.Limit,
                 ct: ct).ConfigureAwait(false);
@@ -229,18 +255,18 @@ namespace Pionex.Net.Clients.SpotApi
         #endregion
 
         #region Spot Symbol client
-        SharedSymbolCatalog? IGetSpotSymbolsRestClient.SpotSymbolCatalog => ExchangeSymbolCache.GetSymbolCatalog(_exchangeName, _topicId, EnvironmentName, null);
+        public SharedSymbolCatalog? SpotSymbolCatalog => ExchangeSymbolCache.GetSymbolCatalog(_exchangeName, _topicId, _api.EnvironmentName, null);
 
-        GetSpotSymbolsOptions IGetSpotSymbolsRestClient.GetSpotSymbolsOptions { get; }
+        public GetSpotSymbolsOptions GetSpotSymbolsOptions { get; }
             = new GetSpotSymbolsOptions(_exchangeName, false);
 
-        async Task<HttpResult<SharedSpotSymbol[]>> IGetSpotSymbolsRestClient.GetSpotSymbolsAsync(GetSymbolsRequest request, CancellationToken ct)
+        public async Task<HttpResult<SharedSpotSymbol[]>> GetSpotSymbolsAsync(GetSymbolsRequest request, CancellationToken ct)
         {
-            var validationError = SharedClient.GetSpotSymbolsOptions.ValidateRequest(request, this);
+            var validationError = GetSpotSymbolsOptions.ValidateRequest(request, this);
             if (validationError != null)
-                return HttpResult.Fail<SharedSpotSymbol[]>(Exchange, validationError);
+                return HttpResult.Fail<SharedSpotSymbol[]>(_exchangeName,  validationError);
 
-            var symbols = await ExchangeData.GetSymbolsAsync(ct: ct).ConfigureAwait(false);
+            var symbols = await _api.ExchangeData.GetSymbolsAsync(ct: ct).ConfigureAwait(false);
             if (!symbols.Success)
                 return HttpResult.Fail<SharedSpotSymbol[]>(symbols);
 
@@ -249,7 +275,7 @@ namespace Pionex.Net.Clients.SpotApi
                 .Where(x => x != null)
                 .ToArray();
 
-            ExchangeSymbolCache.UpdateSymbolInfo(_topicId, EnvironmentName, null, data);
+            ExchangeSymbolCache.UpdateSymbolInfo(_topicId, _api.EnvironmentName, null, data);
             return HttpResult.Ok(symbols, SharedUtils.ApplySymbolFilter(data, request));
         }
 
@@ -290,56 +316,56 @@ namespace Pionex.Net.Clients.SpotApi
             return result;
         }
 
-        async Task<ExchangeCallResult<SharedSymbol[]>> IGetSpotSymbolsRestClient.GetSpotSymbolsForBaseAssetAsync(string baseAsset)
+        public async Task<ExchangeCallResult<SharedSymbol[]>> GetSpotSymbolsForBaseAssetAsync(string baseAsset)
         {
-            if (!ExchangeSymbolCache.HasCached(_topicId, EnvironmentName, null))
+            if (!ExchangeSymbolCache.HasCached(_topicId, _api.EnvironmentName, null))
             {
-                var symbols = await ((IGetSpotSymbolsRestClient)this).GetSpotSymbolsAsync(new GetSymbolsRequest()).ConfigureAwait(false);
+                var symbols = await GetSpotSymbolsAsync(new GetSymbolsRequest(), default).ConfigureAwait(false);
                 if (!symbols.Success)
-                    return ExchangeCallResult<SharedSymbol[]>.Fail(Exchange, symbols.Error!);
+                    return ExchangeCallResult<SharedSymbol[]>.Fail(_exchangeName,  symbols.Error!);
             }
 
-            return ExchangeCallResult<SharedSymbol[]>.Ok(Exchange, ExchangeSymbolCache.GetSymbolsForBaseAsset(_topicId, EnvironmentName, null, baseAsset));
+            return ExchangeCallResult<SharedSymbol[]>.Ok(_exchangeName,  ExchangeSymbolCache.GetSymbolsForBaseAsset(_topicId, _api.EnvironmentName, null, baseAsset));
         }
 
-        async Task<ExchangeCallResult<bool>> IGetSpotSymbolsRestClient.SupportsSpotSymbolAsync(SharedSymbol symbol)
+        public async Task<ExchangeCallResult<bool>> SupportsSpotSymbolAsync(SharedSymbol symbol)
         {
             if (symbol.TradingMode != TradingMode.Spot)
                 throw new ArgumentException(nameof(symbol), "Only Spot symbols allowed");
 
-            if (!ExchangeSymbolCache.HasCached(_topicId, EnvironmentName, null))
+            if (!ExchangeSymbolCache.HasCached(_topicId, _api.EnvironmentName, null))
             {
-                var symbols = await ((IGetSpotSymbolsRestClient)this).GetSpotSymbolsAsync(new GetSymbolsRequest()).ConfigureAwait(false);
+                var symbols = await GetSpotSymbolsAsync(new GetSymbolsRequest(), default).ConfigureAwait(false);
                 if (!symbols.Success)
-                    return ExchangeCallResult<bool>.Fail(Exchange, symbols.Error!);
+                    return ExchangeCallResult<bool>.Fail(_exchangeName,  symbols.Error!);
             }
 
-            return ExchangeCallResult<bool>.Ok(Exchange, ExchangeSymbolCache.SupportsSymbol(_topicId, EnvironmentName, null, symbol));
+            return ExchangeCallResult<bool>.Ok(_exchangeName,  ExchangeSymbolCache.SupportsSymbol(_topicId, _api.EnvironmentName, null, symbol));
         }
 
-        async Task<ExchangeCallResult<bool>> IGetSpotSymbolsRestClient.SupportsSpotSymbolAsync(string symbolName)
+        public async Task<ExchangeCallResult<bool>> SupportsSpotSymbolAsync(string symbolName)
         {
-            if (!ExchangeSymbolCache.HasCached(_topicId, EnvironmentName, null))
+            if (!ExchangeSymbolCache.HasCached(_topicId, _api.EnvironmentName, null))
             {
-                var symbols = await ((IGetSpotSymbolsRestClient)this).GetSpotSymbolsAsync(new GetSymbolsRequest()).ConfigureAwait(false);
+                var symbols = await GetSpotSymbolsAsync(new GetSymbolsRequest(), default).ConfigureAwait(false);
                 if (!symbols.Success)
-                    return ExchangeCallResult<bool>.Fail(Exchange, symbols.Error!);
+                    return ExchangeCallResult<bool>.Fail(_exchangeName,  symbols.Error!);
             }
 
-            return ExchangeCallResult<bool>.Ok(Exchange, ExchangeSymbolCache.SupportsSymbol(_topicId, EnvironmentName, null, symbolName));
+            return ExchangeCallResult<bool>.Ok(_exchangeName,  ExchangeSymbolCache.SupportsSymbol(_topicId, _api.EnvironmentName, null, symbolName));
         }
         #endregion
 
         #region Ticker client
 
-        GetSpotTickerOptions IGetSpotTickerRestClient.GetSpotTickerOptions { get; } = new GetSpotTickerOptions(_exchangeName);
-        async Task<HttpResult<SharedSpotTicker>> IGetSpotTickerRestClient.GetSpotTickerAsync(GetTickerRequest request, CancellationToken ct)
+        public GetSpotTickerOptions GetSpotTickerOptions { get; } = new GetSpotTickerOptions(_exchangeName);
+        public async Task<HttpResult<SharedSpotTicker>> GetSpotTickerAsync(GetTickerRequest request, CancellationToken ct)
         {
-            var validationError = SharedClient.GetSpotTickerOptions.ValidateRequest(request, this);
+            var validationError = GetSpotTickerOptions.ValidateRequest(request, this);
             if (validationError != null)
-                return HttpResult.Fail<SharedSpotTicker>(Exchange, validationError);
+                return HttpResult.Fail<SharedSpotTicker>(_exchangeName,  validationError);
 
-            var result = await ExchangeData.GetTickersAsync(request.SymbolName(FormatSymbol), Enums.SymbolType.Spot, ct).ConfigureAwait(false);
+            var result = await _api.ExchangeData.GetTickersAsync(request.SymbolName(FormatSymbol), Enums.SymbolType.Spot, ct).ConfigureAwait(false);
             if (!result.Success)
                 return HttpResult.Fail<SharedSpotTicker>(result);
 
@@ -348,7 +374,7 @@ namespace Pionex.Net.Clients.SpotApi
                 return HttpResult.Fail<SharedSpotTicker>(result, new ServerError(new ErrorInfo(ErrorType.UnknownSymbol, "Symbol not found")));
 
             return HttpResult.Ok(result, new SharedSpotTicker(
-                    ExchangeSymbolCache.ParseSymbol(_topicId, EnvironmentName, null, symbol.Symbol),
+                    ExchangeSymbolCache.ParseSymbol(_topicId, _api.EnvironmentName, null, symbol.Symbol),
                     symbol.Symbol,
                     symbol.ClosePrice,
                     symbol.HighPrice,
@@ -360,20 +386,24 @@ namespace Pionex.Net.Clients.SpotApi
 
         }
 
-        GetAllSpotTickersOptions IGetAllSpotTickersRestClient.GetAllSpotTickersOptions { get; } = new GetAllSpotTickersOptions(_exchangeName);
-        async Task<HttpResult<SharedSpotTicker[]>> IGetAllSpotTickersRestClient.GetAllSpotTickersAsync(GetTickersRequest request, CancellationToken ct)
-        {
-            var validationError = SharedClient.GetAllSpotTickersOptions.ValidateRequest(request, this);
-            if (validationError != null)
-                return HttpResult.Fail<SharedSpotTicker[]>(Exchange, validationError);
+        Task<HttpResult<SharedSpotTicker[]>> ISpotTickerRestClient.GetSpotTickersAsync(GetTickersRequest request, CancellationToken ct)
+            => GetAllSpotTickersAsync(request, ct);
+        GetAllSpotTickersOptions ISpotTickerRestClient.GetSpotTickersOptions => GetAllSpotTickersOptions;
 
-            var result = await ExchangeData.GetTickersAsync(type: Enums.SymbolType.Spot, ct: ct).ConfigureAwait(false);
+        public GetAllSpotTickersOptions GetAllSpotTickersOptions { get; } = new GetAllSpotTickersOptions(_exchangeName);
+        public async Task<HttpResult<SharedSpotTicker[]>> GetAllSpotTickersAsync(GetTickersRequest request, CancellationToken ct)
+        {
+            var validationError = GetAllSpotTickersOptions.ValidateRequest(request, this);
+            if (validationError != null)
+                return HttpResult.Fail<SharedSpotTicker[]>(_exchangeName,  validationError);
+
+            var result = await _api.ExchangeData.GetTickersAsync(type: Enums.SymbolType.Spot, ct: ct).ConfigureAwait(false);
             if (!result.Success)
                 return HttpResult.Fail<SharedSpotTicker[]>(result);
 
             return HttpResult.Ok(result, result.Data!.Select(x =>
                     new SharedSpotTicker(
-                        ExchangeSymbolCache.ParseSymbol(_topicId, EnvironmentName, null, x.Symbol),
+                        ExchangeSymbolCache.ParseSymbol(_topicId, _api.EnvironmentName, null, x.Symbol),
                         x.Symbol,
                         x.ClosePrice,
                         x.HighPrice,
@@ -389,26 +419,26 @@ namespace Pionex.Net.Clients.SpotApi
 
         #region Spot Order Client
 
-        SharedFeeDeductionType IPlaceSpotOrderRestClient.SpotFeeDeductionType => SharedFeeDeductionType.DeductFromOutput;
-        SharedFeeAssetType IPlaceSpotOrderRestClient.SpotFeeAssetType => SharedFeeAssetType.OutputAsset;
-        SharedOrderType[] IPlaceSpotOrderRestClient.SpotSupportedOrderTypes { get; } = new[] { SharedOrderType.Limit, SharedOrderType.Market };
-        SharedTimeInForce[] IPlaceSpotOrderRestClient.SpotSupportedTimeInForce { get; } = new[] { SharedTimeInForce.GoodTillCanceled, SharedTimeInForce.ImmediateOrCancel };
-        SharedQuantitySupport IPlaceSpotOrderRestClient.SpotSupportedOrderQuantity { get; } = new SharedQuantitySupport(
+        public SharedFeeDeductionType SpotFeeDeductionType => SharedFeeDeductionType.DeductFromOutput;
+        public SharedFeeAssetType SpotFeeAssetType => SharedFeeAssetType.OutputAsset;
+        public SharedOrderType[] SpotSupportedOrderTypes { get; } = new[] { SharedOrderType.Limit, SharedOrderType.Market };
+        public SharedTimeInForce[] SpotSupportedTimeInForce { get; } = new[] { SharedTimeInForce.GoodTillCanceled, SharedTimeInForce.ImmediateOrCancel };
+        public SharedQuantitySupport SpotSupportedOrderQuantity { get; } = new SharedQuantitySupport(
                 SharedQuantityType.BaseAsset,
                 SharedQuantityType.BaseAsset,
                 SharedQuantityType.QuoteAsset,
                 SharedQuantityType.BaseAsset);
 
-        string IPlaceSpotOrderRestClient.GenerateClientOrderId() => ExchangeHelpers.RandomString(20);
+        public string GenerateClientOrderId() => ExchangeHelpers.RandomString(20);
 
-        PlaceSpotOrderOptions IPlaceSpotOrderRestClient.PlaceSpotOrderOptions { get; } = new PlaceSpotOrderOptions(_exchangeName);
-        async Task<HttpResult<SharedId>> IPlaceSpotOrderRestClient.PlaceSpotOrderAsync(PlaceSpotOrderRequest request, CancellationToken ct)
+        public PlaceSpotOrderOptions PlaceSpotOrderOptions { get; } = new PlaceSpotOrderOptions(_exchangeName);
+        public async Task<HttpResult<SharedId>> PlaceSpotOrderAsync(PlaceSpotOrderRequest request, CancellationToken ct)
         {
-            var validationError = SharedClient.PlaceSpotOrderOptions.ValidateRequest(request, this);
+            var validationError = PlaceSpotOrderOptions.ValidateRequest(request, this);
             if (validationError != null)
-                return HttpResult.Fail<SharedId>(Exchange, validationError);
+                return HttpResult.Fail<SharedId>(_exchangeName,  validationError);
 
-            var result = await Trading.PlaceOrderAsync(
+            var result = await _api.Trading.PlaceOrderAsync(
                 request.Symbol!.GetSymbol(FormatSymbol),
                 request.Side == SharedOrderSide.Buy ? Enums.OrderSide.Buy : Enums.OrderSide.Sell,
                 request.OrderType == SharedOrderType.Limit ? Enums.OrderType.Limit : Enums.OrderType.Market,
@@ -426,22 +456,22 @@ namespace Pionex.Net.Clients.SpotApi
 
         }
 
-        GetSpotOrderOptions IGetSpotOrderRestClient.GetSpotOrderOptions { get; } = new GetSpotOrderOptions(_exchangeName, true);
-        async Task<HttpResult<SharedSpotOrder>> IGetSpotOrderRestClient.GetSpotOrderAsync(GetOrderRequest request, CancellationToken ct)
+        public GetSpotOrderOptions GetSpotOrderOptions { get; } = new GetSpotOrderOptions(_exchangeName, true);
+        public async Task<HttpResult<SharedSpotOrder>> GetSpotOrderAsync(GetOrderRequest request, CancellationToken ct)
         {
-            var validationError = SharedClient.GetSpotOrderOptions.ValidateRequest(request, this);
+            var validationError = GetSpotOrderOptions.ValidateRequest(request, this);
             if (validationError != null)
-                return HttpResult.Fail<SharedSpotOrder>(Exchange, validationError);
+                return HttpResult.Fail<SharedSpotOrder>(_exchangeName,  validationError);
 
             if (!long.TryParse(request.OrderId, out var orderId))
-                return HttpResult.Fail<SharedSpotOrder>(Exchange, ArgumentError.Invalid(nameof(GetOrderRequest.OrderId), "Invalid order id"));
+                return HttpResult.Fail<SharedSpotOrder>(_exchangeName,  ArgumentError.Invalid(nameof(GetOrderRequest.OrderId), "Invalid order id"));
 
-            var order = await Trading.GetOrderAsync(orderId, ct: ct).ConfigureAwait(false);
+            var order = await _api.Trading.GetOrderAsync(orderId, ct: ct).ConfigureAwait(false);
             if (!order.Success)
                 return HttpResult.Fail<SharedSpotOrder>(order);
 
             return HttpResult.Ok(order, new SharedSpotOrder(
-                    ExchangeSymbolCache.ParseSymbol(_topicId, EnvironmentName, null, order.Data!.Symbol),
+                    ExchangeSymbolCache.ParseSymbol(_topicId, _api.EnvironmentName, null, order.Data!.Symbol),
                     order.Data.Symbol,
                     order.Data.OrderId.ToString(),
                     order.Data.OrderType == OrderType.Market ? SharedOrderType.Market : SharedOrderType.Limit,
@@ -461,26 +491,26 @@ namespace Pionex.Net.Clients.SpotApi
 
         }
 
-        GetOpenSpotOrdersOptions IGetOpenSpotOrdersRestClient.GetOpenSpotOrdersOptions { get; }
+        public GetOpenSpotOrdersOptions GetOpenSpotOrdersOptions { get; }
             = new GetOpenSpotOrdersOptions(_exchangeName, true)
             {
-                RequiredOptionalParameters = [
-                    new ParameterDescription(nameof(GetOpenOrdersRequest.Symbol), typeof(SharedSymbol), "Symbol to get open orders for", "ETH_USDT")
+                RequiredRequestParameters = [
+                    RequestParameter<GetOpenOrdersRequest>.Required(x => x.Symbol, "Symbol to get open orders for", new SharedSymbol(TradingMode.Spot, "ETH", "USDT"))
                     ]
             };
-        async Task<HttpResult<SharedSpotOrder[]>> IGetOpenSpotOrdersRestClient.GetOpenSpotOrdersAsync(GetOpenOrdersRequest request, CancellationToken ct)
+        public async Task<HttpResult<SharedSpotOrder[]>> GetOpenSpotOrdersAsync(GetOpenOrdersRequest request, CancellationToken ct)
         {
-            var validationError = SharedClient.GetOpenSpotOrdersOptions.ValidateRequest(request, this);
+            var validationError = GetOpenSpotOrdersOptions.ValidateRequest(request, this);
             if (validationError != null)
-                return HttpResult.Fail<SharedSpotOrder[]>(Exchange, validationError);
+                return HttpResult.Fail<SharedSpotOrder[]>(_exchangeName,  validationError);
 
             var symbol = request.Symbol!.GetSymbol(FormatSymbol);
-            var orders = await Trading.GetOpenOrdersAsync(symbol, ct: ct).ConfigureAwait(false);
+            var orders = await _api.Trading.GetOpenOrdersAsync(symbol, ct: ct).ConfigureAwait(false);
             if (!orders.Success)
                 return HttpResult.Fail<SharedSpotOrder[]>(orders);
 
             return HttpResult.Ok(orders, orders.Data!.Select(x => new SharedSpotOrder(
-                    ExchangeSymbolCache.ParseSymbol(_topicId, EnvironmentName, null, x.Symbol),
+                    ExchangeSymbolCache.ParseSymbol(_topicId, _api.EnvironmentName, null, x.Symbol),
                     x.Symbol,
                     x.OrderId.ToString(),
                     x.OrderType == OrderType.Market ? SharedOrderType.Market : SharedOrderType.Limit,
@@ -500,12 +530,12 @@ namespace Pionex.Net.Clients.SpotApi
 
         }
 
-        GetSpotClosedOrdersOptions IGetClosedSpotOrdersRestClient.GetClosedSpotOrdersOptions { get; } = new GetSpotClosedOrdersOptions(_exchangeName, false, true, true, 200);
-        async Task<HttpResult<SharedSpotOrder[]>> IGetClosedSpotOrdersRestClient.GetClosedSpotOrdersAsync(GetClosedOrdersRequest request, PageRequest? pageRequest, CancellationToken ct)
+        public GetSpotClosedOrdersOptions GetClosedSpotOrdersOptions { get; } = new GetSpotClosedOrdersOptions(_exchangeName, false, true, true, 200);
+        public async Task<HttpResult<SharedSpotOrder[]>> GetClosedSpotOrdersAsync(GetClosedOrdersRequest request, PageRequest? pageRequest, CancellationToken ct)
         {
-            var validationError = SharedClient.GetClosedSpotOrdersOptions.ValidateRequest(request, this);
+            var validationError = GetClosedSpotOrdersOptions.ValidateRequest(request, this);
             if (validationError != null)
-                return HttpResult.Fail<SharedSpotOrder[]>(Exchange, validationError);
+                return HttpResult.Fail<SharedSpotOrder[]>(_exchangeName,  validationError);
 
             var direction = DataDirection.Descending;
             var limit = request.Limit ?? 200;
@@ -518,7 +548,7 @@ namespace Pionex.Net.Clients.SpotApi
                 true);
 
             // Get data
-            var result = await Trading.GetOrdersAsync(
+            var result = await _api.Trading.GetOrdersAsync(
                 symbol,
                 startTime: pageParams.StartTime,
                 endTime: pageParams.EndTime,
@@ -538,7 +568,7 @@ namespace Pionex.Net.Clients.SpotApi
             return HttpResult.Ok(result, ExchangeHelpers.ApplyFilter(result.Data, x => x.CreateTime, request.StartTime, request.EndTime, direction)
                     .Where(x => x.Status == OrderStatus.Closed)
                     .Select(x => new SharedSpotOrder(
-                        ExchangeSymbolCache.ParseSymbol(_topicId, EnvironmentName, null, x.Symbol),
+                        ExchangeSymbolCache.ParseSymbol(_topicId, _api.EnvironmentName, null, x.Symbol),
                         x.Symbol,
                         x.OrderId.ToString(),
                         x.OrderType == OrderType.Market ? SharedOrderType.Market : SharedOrderType.Limit,
@@ -559,23 +589,23 @@ namespace Pionex.Net.Clients.SpotApi
 
         }
 
-        GetSpotOrderTradesOptions IGetSpotOrderTradesRestClient.GetSpotOrderTradesOptions { get; }
+        public GetSpotOrderTradesOptions GetSpotOrderTradesOptions { get; }
             = new GetSpotOrderTradesOptions(_exchangeName, true);
-        async Task<HttpResult<SharedUserTrade[]>> IGetSpotOrderTradesRestClient.GetSpotOrderTradesAsync(GetOrderTradesRequest request, CancellationToken ct)
+        public async Task<HttpResult<SharedUserTrade[]>> GetSpotOrderTradesAsync(GetOrderTradesRequest request, CancellationToken ct)
         {
-            var validationError = SharedClient.GetSpotOrderTradesOptions.ValidateRequest(request, this);
+            var validationError = GetSpotOrderTradesOptions.ValidateRequest(request, this);
             if (validationError != null)
-                return HttpResult.Fail<SharedUserTrade[]>(Exchange, validationError);
+                return HttpResult.Fail<SharedUserTrade[]>(_exchangeName,  validationError);
 
             if (!long.TryParse(request.OrderId, out var orderId))
-                return HttpResult.Fail<SharedUserTrade[]>(Exchange, ArgumentError.Invalid(nameof(GetOrderTradesRequest.OrderId), "Invalid order id"));
+                return HttpResult.Fail<SharedUserTrade[]>(_exchangeName,  ArgumentError.Invalid(nameof(GetOrderTradesRequest.OrderId), "Invalid order id"));
 
-            var orders = await Trading.GetOrderTradesAsync(orderId: orderId, ct: ct).ConfigureAwait(false);
+            var orders = await _api.Trading.GetOrderTradesAsync(orderId: orderId, ct: ct).ConfigureAwait(false);
             if (!orders.Success)
                 return HttpResult.Fail<SharedUserTrade[]>(orders);
 
             return HttpResult.Ok(orders, orders.Data!.Select(x => new SharedUserTrade(
-                ExchangeSymbolCache.ParseSymbol(_topicId, EnvironmentName, null, x.Symbol),
+                ExchangeSymbolCache.ParseSymbol(_topicId, _api.EnvironmentName, null, x.Symbol),
                 x.Symbol,
                 x.OrderId.ToString(),
                 x.Id.ToString(),
@@ -591,12 +621,16 @@ namespace Pionex.Net.Clients.SpotApi
 
         }
 
-        GetSpotUserTradeHistoryOptions IGetSpotUserTradeHistoryRestClient.GetSpotUserTradeHistoryOptions { get; } = new GetSpotUserTradeHistoryOptions(_exchangeName, false, true, true, 100);
-        async Task<HttpResult<SharedUserTrade[]>> IGetSpotUserTradeHistoryRestClient.GetSpotUserTradeHistoryAsync(GetUserTradesRequest request, PageRequest? pageRequest, CancellationToken ct)
+        Task<HttpResult<SharedUserTrade[]>> ISpotOrderRestClient.GetSpotUserTradesAsync(GetUserTradesRequest request, PageRequest? nextPageToken, CancellationToken ct)
+            => GetSpotUserTradeHistoryAsync(request, nextPageToken, ct);
+        GetSpotUserTradeHistoryOptions ISpotOrderRestClient.GetSpotUserTradesOptions => GetSpotUserTradeHistoryOptions;
+
+        public GetSpotUserTradeHistoryOptions GetSpotUserTradeHistoryOptions { get; } = new GetSpotUserTradeHistoryOptions(_exchangeName, false, true, true, 100);
+        public async Task<HttpResult<SharedUserTrade[]>> GetSpotUserTradeHistoryAsync(GetUserTradesRequest request, PageRequest? pageRequest, CancellationToken ct)
         {
-            var validationError = SharedClient.GetSpotUserTradeHistoryOptions.ValidateRequest(request, this);
+            var validationError = GetSpotUserTradeHistoryOptions.ValidateRequest(request, this);
             if (validationError != null)
-                return HttpResult.Fail<SharedUserTrade[]>(Exchange, validationError);
+                return HttpResult.Fail<SharedUserTrade[]>(_exchangeName,  validationError);
 
             var direction = DataDirection.Descending;
             var limit = request.Limit ?? 100;
@@ -608,7 +642,7 @@ namespace Pionex.Net.Clients.SpotApi
                 false);
 
             // Get data
-            var result = await Trading.GetUserTradesAsync(
+            var result = await _api.Trading.GetUserTradesAsync(
                 symbol,
                 startTime: pageParams.StartTime,
                 endTime: pageParams.EndTime,
@@ -629,7 +663,7 @@ namespace Pionex.Net.Clients.SpotApi
             return HttpResult.Ok(result, ExchangeHelpers.ApplyFilter(result.Data, x => x.Timestamp, request.StartTime, request.EndTime, direction)
                     .Select(x =>
                         new SharedUserTrade(
-                            ExchangeSymbolCache.ParseSymbol(_topicId, EnvironmentName, null, x.Symbol),
+                            ExchangeSymbolCache.ParseSymbol(_topicId, _api.EnvironmentName, null, x.Symbol),
                             x.Symbol,
                             x.OrderId.ToString(),
                             x.Id.ToString(),
@@ -646,18 +680,18 @@ namespace Pionex.Net.Clients.SpotApi
 
         }
 
-        CancelSpotOrderOptions ICancelSpotOrderRestClient.CancelSpotOrderOptions { get; }
+        public CancelSpotOrderOptions CancelSpotOrderOptions { get; }
             = new CancelSpotOrderOptions(_exchangeName, true);
-        async Task<HttpResult<SharedId>> ICancelSpotOrderRestClient.CancelSpotOrderAsync(CancelOrderRequest request, CancellationToken ct)
+        public async Task<HttpResult<SharedId>> CancelSpotOrderAsync(CancelOrderRequest request, CancellationToken ct)
         {
-            var validationError = SharedClient.CancelSpotOrderOptions.ValidateRequest(request, this);
+            var validationError = CancelSpotOrderOptions.ValidateRequest(request, this);
             if (validationError != null)
-                return HttpResult.Fail<SharedId>(Exchange, validationError);
+                return HttpResult.Fail<SharedId>(_exchangeName,  validationError);
 
             if (!long.TryParse(request.OrderId, out var orderId))
-                return HttpResult.Fail<SharedId>(Exchange, ArgumentError.Invalid(nameof(CancelOrderRequest.OrderId), "Invalid order id"));
+                return HttpResult.Fail<SharedId>(_exchangeName,  ArgumentError.Invalid(nameof(CancelOrderRequest.OrderId), "Invalid order id"));
 
-            var order = await Trading.CancelOrderAsync(request.Symbol!.GetSymbol(FormatSymbol), orderId, ct: ct).ConfigureAwait(false);
+            var order = await _api.Trading.CancelOrderAsync(request.Symbol!.GetSymbol(FormatSymbol), orderId, ct: ct).ConfigureAwait(false);
             if (!order.Success)
                 return HttpResult.Fail<SharedId>(order);
 

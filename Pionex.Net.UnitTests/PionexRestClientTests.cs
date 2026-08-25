@@ -2,10 +2,14 @@ using CryptoExchange.Net.Authentication;
 using CryptoExchange.Net.Clients;
 using CryptoExchange.Net.Converters.SystemTextJson;
 using CryptoExchange.Net.Objects;
+using CryptoExchange.Net.SharedApis;
 using NUnit.Framework;
-using System.Collections.Generic;
-using System.Net.Http;
+using NUnit.Framework.Legacy;
 using Pionex.Net.Clients;
+using Pionex.Net.Interfaces.Clients.SpotApi;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
 
 namespace Pionex.Net.UnitTests
 {
@@ -41,6 +45,34 @@ namespace Pionex.Net.UnitTests
         {
             CryptoExchange.Net.Testing.TestHelpers.CheckForMissingRestInterfaces<PionexRestClient>();
             CryptoExchange.Net.Testing.TestHelpers.CheckForMissingSocketInterfaces<PionexSocketClient>();
+        }
+
+        [Test]
+        public void TestSpotSharedApiDiscoveryMatchesAggregate()
+        {
+            var client = new PionexRestClient();
+            var sharedApi = client.SpotApi.SharedApi;
+
+            var expectedOptions = typeof(IPionexRestClientSpotSharedApi)
+                .GetInterfaces()
+                .Append(typeof(IPionexRestClientSpotApiShared))
+                .SelectMany(x => x.GetProperties())
+                .Where(x => typeof(EndpointOptions)
+                    .IsAssignableFrom(x.PropertyType))
+                .Select(x => (EndpointOptions)x.GetValue(sharedApi)!)
+                .Distinct()
+                .ToArray();
+
+            var providedOptions = sharedApi.EndpointOptions.ToArray();
+
+            CollectionAssert.AreEquivalent(
+                expectedOptions,
+                providedOptions);
+
+            Assert.That(
+                providedOptions,
+                Has.All.Property(nameof(EndpointOptions.Supported))
+                    .EqualTo(true));
         }
     }
 }

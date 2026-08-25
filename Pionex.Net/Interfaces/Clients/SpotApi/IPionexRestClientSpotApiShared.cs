@@ -16,4 +16,23 @@ namespace Pionex.Net.Interfaces.Clients.SpotApi
         ISpotOrderRestClient
     {
     }
+
+    public interface IPionexRestClientSpotSharedApi :
+        IGetBalancesEndpoint,
+        IGetBookTickerEndpoint,
+        IGetKlinesEndpoint,
+        IGetOrderBookEndpoint,
+        IGetRecentTradesEndpoint,
+        IGetSpotSymbolsEndpoint,
+        IGetSpotTickerEndpoint,
+        IGetAllSpotTickersEndpoint,
+        IPlaceSpotOrderEndpoint,
+        IGetSpotOrderEndpoint,
+        IGetOpenSpotOrdersEndpoint,
+        IGetClosedSpotOrdersEndpoint,
+        IGetSpotOrderTradesEndpoint,
+        IGetSpotUserTradeHistoryEndpoint,
+        ICancelSpotOrderEndpoint
+    {
+    }
 }

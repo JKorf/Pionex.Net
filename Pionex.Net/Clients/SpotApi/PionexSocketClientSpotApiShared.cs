@@ -14,30 +14,49 @@ using System.Threading.Tasks;
 
 namespace Pionex.Net.Clients.SpotApi
 {
-    internal partial class PionexSocketClientSpotApi : IPionexSocketClientSpotApiShared
+    internal class PionexSocketClientSpotSharedApi :
+        SharedApiBase,
+        IPionexSocketClientSpotApiShared
     {
+        private readonly PionexSocketClientSpotApi _api;
+
         private const string _exchangeName = "Pionex";
         private const string _topicId = "PionexSpot";
-        public TradingMode[] SupportedTradingModes => new[] { TradingMode.Spot };
+        public override SharedClientInfo Discover() => SharedUtils.GetClientInfo(PionexExchange.Metadata, this);
 
-        public void SetDefaultExchangeParameter(string key, object value) => ExchangeParameters.SetStaticParameter(Exchange, key, value);
-        public void ResetDefaultExchangeParameters() => ExchangeParameters.ResetStaticParameters();
-        public SharedClientInfo Discover() => SharedUtils.GetClientInfo(PionexExchange.Metadata, this);
+        public PionexSocketClientSpotSharedApi(PionexSocketClientSpotApi api)
+            : base(
+                  api.Exchange, 
+                  [TradingMode.Spot],
+                  () => api.Authenticated, 
+                  api.FormatSymbol)
+        {
+            _api = api;
+
+            SetEndpointOptions(
+                SubscribeTradeOptions,
+                SubscribeBookTickerOptions,
+                SubscribeOrderBookOptions,
+                SubscribeSpotOrderOptions,
+                SubscribeUserTradeOptions,
+                SubscribeBalanceOptions
+                );
+        }
 
         #region Trade client
 
-        SubscribeTradeOptions ITradeSocketClient.SubscribeTradeOptions { get; }
+        public SubscribeTradeOptions SubscribeTradeOptions { get; }
             = new SubscribeTradeOptions(_exchangeName, false);
-        async Task<WebSocketResult<UpdateSubscription>> ITradeSocketClient.SubscribeToTradeUpdatesAsync(SubscribeTradeRequest request, Action<DataEvent<SharedTrade[]>> handler, CancellationToken ct)
+        public async Task<WebSocketResult<UpdateSubscription>> SubscribeToTradeUpdatesAsync(SubscribeTradeRequest request, Action<DataEvent<SharedTrade[]>> handler, CancellationToken ct)
         {
-            var validationError = ((ITradeSocketClient)this).SubscribeTradeOptions.ValidateRequest(request, this);
+            var validationError = SubscribeTradeOptions.ValidateRequest(request, this);
             if (validationError != null)
                 return WebSocketResult.Fail<UpdateSubscription>(Exchange, validationError);
 
             var symbol = request.SymbolName(FormatSymbol);
-            var result = await SubscribeToTradeUpdatesAsync(symbol, update => handler(update.ToType(update.Data.Select(x =>
+            var result = await _api.SubscribeToTradeUpdatesAsync(symbol, update => handler(update.ToType(update.Data.Select(x =>
                 new SharedTrade(
-                    ExchangeSymbolCache.ParseSymbol(_topicId, EnvironmentName, null, x.Symbol),
+                    ExchangeSymbolCache.ParseSymbol(_topicId, _api.EnvironmentName, null, x.Symbol),
                     x.Symbol,
                     new SharedOrderQuantity(x.Quantity),
                     x.Price, 
@@ -52,15 +71,15 @@ namespace Pionex.Net.Clients.SpotApi
         #endregion
 
         #region Book Ticker client
-        SubscribeBookTickerOptions IBookTickerSocketClient.SubscribeBookTickerOptions { get; } = new SubscribeBookTickerOptions(_exchangeName, false);
-        async Task<WebSocketResult<UpdateSubscription>> IBookTickerSocketClient.SubscribeToBookTickerUpdatesAsync(SubscribeBookTickerRequest request, Action<DataEvent<SharedBookTicker>> handler, CancellationToken ct)
+        public SubscribeBookTickerOptions SubscribeBookTickerOptions { get; } = new SubscribeBookTickerOptions(_exchangeName, false);
+        public async Task<WebSocketResult<UpdateSubscription>> SubscribeToBookTickerUpdatesAsync(SubscribeBookTickerRequest request, Action<DataEvent<SharedBookTicker>> handler, CancellationToken ct)
         {
-            var validationError = ((IBookTickerSocketClient)this).SubscribeBookTickerOptions.ValidateRequest(request, this);
+            var validationError = SubscribeBookTickerOptions.ValidateRequest(request, this);
             if (validationError != null)
                 return WebSocketResult.Fail<UpdateSubscription>(Exchange, validationError);
 
             var symbol = request.SymbolName(FormatSymbol);
-            var result = await SubscribeToOrderBookUpdatesAsync(
+            var result = await _api.SubscribeToOrderBookUpdatesAsync(
                 symbol,
                 1,
                 update => handler(update.ToType(
@@ -78,15 +97,15 @@ namespace Pionex.Net.Clients.SpotApi
         #endregion
 
         #region Order Book client
-        SubscribeOrderBookOptions IOrderBookSocketClient.SubscribeOrderBookOptions { get; } = new SubscribeOrderBookOptions(_exchangeName, false, [1, 5, 10, 20, 50, 100]);
-        async Task<WebSocketResult<UpdateSubscription>> IOrderBookSocketClient.SubscribeToOrderBookUpdatesAsync(SubscribeOrderBookRequest request, Action<DataEvent<SharedOrderBook>> handler, CancellationToken ct)
+        public SubscribeOrderBookOptions SubscribeOrderBookOptions { get; } = new SubscribeOrderBookOptions(_exchangeName, false, [1, 5, 10, 20, 50, 100]);
+        public async Task<WebSocketResult<UpdateSubscription>> SubscribeToOrderBookUpdatesAsync(SubscribeOrderBookRequest request, Action<DataEvent<SharedOrderBook>> handler, CancellationToken ct)
         {
-            var validationError = ((IOrderBookSocketClient)this).SubscribeOrderBookOptions.ValidateRequest(request, this);
+            var validationError = SubscribeOrderBookOptions.ValidateRequest(request, this);
             if (validationError != null)
                 return WebSocketResult.Fail<UpdateSubscription>(Exchange, validationError);
 
             var symbol = request.SymbolName(FormatSymbol);
-            var result = await SubscribeToOrderBookUpdatesAsync(
+            var result = await _api.SubscribeToOrderBookUpdatesAsync(
                 symbol,
                 request.Limit ?? 20, 
                 update => handler(update.ToType(new SharedOrderBook(SharedQuantityType.BaseAsset, update.Data.Asks, update.Data.Bids))), ct).ConfigureAwait(false);
@@ -97,25 +116,25 @@ namespace Pionex.Net.Clients.SpotApi
 
         #region Spot Order client
 
-        SubscribeSpotOrderOptions ISpotOrderSocketClient.SubscribeSpotOrderOptions { get; }
+        public SubscribeSpotOrderOptions SubscribeSpotOrderOptions { get; }
             = new SubscribeSpotOrderOptions(_exchangeName, true)
             {
                 RequiredExchangeParameters = [
                     new ParameterDescription("Symbol", typeof(SharedSymbol), "Symbol to subscribe to open orders for", "ETH_USDT")
                     ]
             };
-        async Task<WebSocketResult<UpdateSubscription>> ISpotOrderSocketClient.SubscribeToSpotOrderUpdatesAsync(SubscribeSpotOrderRequest request, Action<DataEvent<SharedSpotOrder[]>> handler, CancellationToken ct)
+        public async Task<WebSocketResult<UpdateSubscription>> SubscribeToSpotOrderUpdatesAsync(SubscribeSpotOrderRequest request, Action<DataEvent<SharedSpotOrder[]>> handler, CancellationToken ct)
         {
-            var validationError = ((ISpotOrderSocketClient)this).SubscribeSpotOrderOptions.ValidateRequest(request, this);
+            var validationError = SubscribeSpotOrderOptions.ValidateRequest(request, this);
             if (validationError != null)
                 return WebSocketResult.Fail<UpdateSubscription>(Exchange, validationError);
 
             var symbol = request.GetParamValue<SharedSymbol>(_exchangeName, "Symbol");
-            var result = await SubscribeToOrderUpdatesAsync(
+            var result = await _api.SubscribeToOrderUpdatesAsync(
                 symbol!.GetSymbol(FormatSymbol),
                 update => handler(update.ToType(new[] {
                     new SharedSpotOrder(
-                    ExchangeSymbolCache.ParseSymbol(_topicId, EnvironmentName, null, update.Data!.Symbol),
+                    ExchangeSymbolCache.ParseSymbol(_topicId, _api.EnvironmentName, null, update.Data!.Symbol),
                     update.Data.Symbol,
                     update.Data.OrderId.ToString(),
                     update.Data.OrderType == OrderType.Market ? SharedOrderType.Market : SharedOrderType.Limit,
@@ -160,24 +179,24 @@ namespace Pionex.Net.Clients.SpotApi
 
         #region User Trade client
 
-        SubscribeUserTradeOptions IUserTradeSocketClient.SubscribeUserTradeOptions { get; } = new SubscribeUserTradeOptions(_exchangeName, true)
+        public SubscribeUserTradeOptions SubscribeUserTradeOptions { get; } = new SubscribeUserTradeOptions(_exchangeName, true)
         {
             RequiredExchangeParameters = [
                     new ParameterDescription("Symbol", typeof(SharedSymbol), "Symbol to subscribe to user trades for", "ETH_USDT")
                     ]
         };
-        async Task<WebSocketResult<UpdateSubscription>> IUserTradeSocketClient.SubscribeToUserTradeUpdatesAsync(SubscribeUserTradeRequest request, Action<DataEvent<SharedUserTrade[]>> handler, CancellationToken ct)
+        public async Task<WebSocketResult<UpdateSubscription>> SubscribeToUserTradeUpdatesAsync(SubscribeUserTradeRequest request, Action<DataEvent<SharedUserTrade[]>> handler, CancellationToken ct)
         {
-            var validationError = SharedClient.SubscribeUserTradeOptions.ValidateRequest(request, this);
+            var validationError = SubscribeUserTradeOptions.ValidateRequest(request, this);
             if (validationError != null)
                 return WebSocketResult.Fail<UpdateSubscription>(_exchangeName, validationError);
 
             var symbol = request.GetParamValue<SharedSymbol>(_exchangeName, "Symbol");
-            var result = await SubscribeToUserTradeUpdatesAsync(
+            var result = await _api.SubscribeToUserTradeUpdatesAsync(
                 symbol!.GetSymbol(FormatSymbol),
                 update => handler(update.ToType<SharedUserTrade[]>([
                     new SharedUserTrade(
-                        ExchangeSymbolCache.ParseSymbol(_topicId, EnvironmentName, null, update.Data.Symbol),
+                        ExchangeSymbolCache.ParseSymbol(_topicId, _api.EnvironmentName, null, update.Data.Symbol),
                         update.Data.Symbol,
                         update.Data.OrderId.ToString(),
                         update.Data.Id.ToString(),
@@ -198,13 +217,13 @@ namespace Pionex.Net.Clients.SpotApi
         #endregion
 
         #region Balance client
-        SubscribeBalanceOptions IBalanceSocketClient.SubscribeBalanceOptions { get; } = new SubscribeBalanceOptions(_exchangeName, false);
-        async Task<WebSocketResult<UpdateSubscription>> IBalanceSocketClient.SubscribeToBalanceUpdatesAsync(SubscribeBalancesRequest request, Action<DataEvent<SharedBalance[]>> handler, CancellationToken ct)
+        public SubscribeBalanceOptions SubscribeBalanceOptions { get; } = new SubscribeBalanceOptions(_exchangeName, false);
+        public async Task<WebSocketResult<UpdateSubscription>> SubscribeToBalanceUpdatesAsync(SubscribeBalancesRequest request, Action<DataEvent<SharedBalance[]>> handler, CancellationToken ct)
         {
-            var validationError = SharedClient.SubscribeBalanceOptions.ValidateRequest(request, this);
+            var validationError = SubscribeBalanceOptions.ValidateRequest(request, this);
             if (validationError != null)
                 return WebSocketResult.Fail<UpdateSubscription>(_exchangeName, validationError);
-            var result = await SubscribeToBalanceUpdatesAsync(
+            var result = await _api.SubscribeToBalanceUpdatesAsync(
                 update =>
                 {
                     handler(update.ToType<SharedBalance[]>(update.Data.Select(x =>
