@@ -27,10 +27,15 @@ namespace Pionex.Net.Interfaces.Clients.SpotApi
         public IPionexRestClientSpotApiTrading Trading { get; }
 
         /// <summary>
-        /// Get the shared rest requests client. This interface is shared with other exchanges to allow for a common implementation for different exchanges.
+        /// Get the shared rest requests client. For new implementations prefer using <see cref="SharedApi"/>
         /// </summary>
         public IPionexRestClientSpotApiShared SharedClient { get; }
 
+        /// <summary>
+        /// Shared API interface. Shared APIs provide a common,
+        /// exchange-independent contract for accessing functionality across different
+        /// exchange client libraries.
+        /// </summary>
         public IPionexRestClientSpotSharedApi SharedApi { get; }
     }
 }

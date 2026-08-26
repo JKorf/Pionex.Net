@@ -185,6 +185,8 @@ namespace Pionex.Net.Clients.SpotApi
 
         /// <inheritdoc />
         public IPionexSocketClientSpotApiShared SharedClient => _sharedApi;
+        /// <inheritdoc />
+        public IPionexSocketClientSpotSharedApi SharedApi => _sharedApi;
 
         /// <inheritdoc />
         public override string FormatSymbol(string baseAsset, string quoteAsset, TradingMode tradingMode, DateTime? deliverDate = null)

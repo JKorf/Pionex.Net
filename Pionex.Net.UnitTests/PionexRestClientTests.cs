@@ -3,6 +3,7 @@ using CryptoExchange.Net.Clients;
 using CryptoExchange.Net.Converters.SystemTextJson;
 using CryptoExchange.Net.Objects;
 using CryptoExchange.Net.SharedApis;
+using CryptoExchange.Net.Testing;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using Pionex.Net.Clients;
@@ -50,29 +51,10 @@ namespace Pionex.Net.UnitTests
         [Test]
         public void TestSpotSharedApiDiscoveryMatchesAggregate()
         {
-            var client = new PionexRestClient();
-            var sharedApi = client.SpotApi.SharedApi;
+            var (missingOptions, missingInterfaces) = TestHelpers.ValidateSharedApi(new PionexRestClient().SpotApi.SharedApi);
 
-            var expectedOptions = typeof(IPionexRestClientSpotSharedApi)
-                .GetInterfaces()
-                .Append(typeof(IPionexRestClientSpotApiShared))
-                .SelectMany(x => x.GetProperties())
-                .Where(x => typeof(EndpointOptions)
-                    .IsAssignableFrom(x.PropertyType))
-                .Select(x => (EndpointOptions)x.GetValue(sharedApi)!)
-                .Distinct()
-                .ToArray();
-
-            var providedOptions = sharedApi.EndpointOptions.ToArray();
-
-            CollectionAssert.AreEquivalent(
-                expectedOptions,
-                providedOptions);
-
-            Assert.That(
-                providedOptions,
-                Has.All.Property(nameof(EndpointOptions.Supported))
-                    .EqualTo(true));
+            Assert.That(missingOptions, Is.Empty);
+            Assert.That(missingInterfaces, Is.Empty);
         }
     }
 }

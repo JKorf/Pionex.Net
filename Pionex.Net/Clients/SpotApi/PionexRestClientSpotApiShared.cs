@@ -71,7 +71,7 @@ namespace Pionex.Net.Clients.SpotApi
         {
             _api = api;
 
-            SetEndpointOptions(
+            SetCapabilities(
                 GetBalancesOptions,
                 GetBookTickerOptions,
                 GetKlinesOptions,

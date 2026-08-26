@@ -16,7 +16,9 @@ namespace Pionex.Net.Clients.SpotApi
 {
     internal class PionexSocketClientSpotSharedApi :
         SharedApiBase,
-        IPionexSocketClientSpotApiShared
+        IPionexSocketClientSpotApiShared,
+        IPionexSocketClientSpotSharedApi
+
     {
         private readonly PionexSocketClientSpotApi _api;
 
@@ -33,7 +35,7 @@ namespace Pionex.Net.Clients.SpotApi
         {
             _api = api;
 
-            SetEndpointOptions(
+            SetCapabilities(
                 SubscribeTradeOptions,
                 SubscribeBookTickerOptions,
                 SubscribeOrderBookOptions,
