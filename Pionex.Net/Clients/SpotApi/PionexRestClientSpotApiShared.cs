@@ -107,9 +107,9 @@ namespace Pionex.Net.Clients.SpotApi
                 request.Symbol,
                 symbol.Symbol,
                 symbol.AskPrice ?? 0,
-                symbol.AskQuantity ?? 0,
+                new SharedOrderQuantity(symbol.AskQuantity ?? 0),
                 symbol.BidPrice ?? 0,
-                symbol.BidQuantity ?? 0));
+                new SharedOrderQuantity(symbol.BidQuantity ?? 0)));
 
         }
 
@@ -192,7 +192,7 @@ namespace Pionex.Net.Clients.SpotApi
             if (!result.Success)
                 return HttpResult.Fail<SharedOrderBook>(result);
 
-            return HttpResult.Ok(result, new SharedOrderBook(result.Data!.Asks, result.Data.Bids));
+            return HttpResult.Ok(result, new SharedOrderBook(SharedQuantityType.BaseAsset, result.Data!.Asks, result.Data.Bids));
 
         }
 
@@ -255,12 +255,14 @@ namespace Pionex.Net.Clients.SpotApi
         {
             var result = new SharedSpotSymbol(symbol.BaseAsset, symbol.QuoteAsset, symbol.Symbol, symbol.Enable)
             {
-                MinTradeQuantity = symbol.MinTradeQuantity,
+                MinTradeQuantity = symbol.MinSpotQuantity,
                 MaxTradeQuantity = symbol.MaxTradeQuantity,
                 QuantityDecimals = symbol.BasePrecision,
                 PriceDecimals = symbol.QuotePrecision,
                 DisplayName = symbol.Symbol,
-                QuoteAssetType = SharedAssetType.Crypto
+                QuoteAssetType = SharedAssetType.Crypto,
+                UpperPriceLimitPercentage = Math.Abs(100 - symbol.BuyCeiling * 100),
+                LowerPriceLimitPercentage = -(100 - symbol.SellFloor * 100)
             };
 
             if (LibraryHelpers.IsStableCoin(result.QuoteAsset))
@@ -576,7 +578,7 @@ namespace Pionex.Net.Clients.SpotApi
                 x.OrderId.ToString(),
                 x.Id.ToString(),
                 x.Side == OrderSide.Buy ? SharedOrderSide.Buy : SharedOrderSide.Sell,
-                x.Quantity,
+                new SharedOrderQuantity(x.Quantity),
                 x.Price,
                 x.Timestamp)
             {
@@ -630,7 +632,7 @@ namespace Pionex.Net.Clients.SpotApi
                             x.OrderId.ToString(),
                             x.Id.ToString(),
                             x.Side == OrderSide.Buy ? SharedOrderSide.Buy : SharedOrderSide.Sell,
-                            x.Quantity,
+                            new SharedOrderQuantity(x.Quantity),
                             x.Price,
                             x.Timestamp)
                         {
