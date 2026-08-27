@@ -220,7 +220,7 @@ namespace Pionex.Net.Clients.SpotApi
             if (!result.Success)
                 return HttpResult.Fail<SharedOrderBook>(result);
 
-            return HttpResult.Ok(result, new SharedOrderBook(SharedQuantityType.BaseAsset, result.Data!.Asks, result.Data.Bids));
+            return HttpResult.Ok(result, new SharedOrderBook(SharedQuantityType.BaseAsset, null, result.Data!.Asks, result.Data.Bids));
 
         }
 
@@ -485,8 +485,10 @@ namespace Pionex.Net.Clients.SpotApi
                 QuantityFilled = new SharedOrderQuantity(order.Data.QuantityFilled, order.Data.QuoteQuantityFilled),
                 TimeInForce = order.Data.IOC ? SharedTimeInForce.ImmediateOrCancel : SharedTimeInForce.GoodTillCanceled,
                 UpdateTime = order.Data.UpdateTime,
+#pragma warning disable CS0618 // Type or member is obsolete
                 Fee = order.Data.Fee,
                 FeeAsset = order.Data.FeeAsset                
+#pragma warning restore CS0618 // Type or member is obsolete
             });
 
         }
@@ -524,8 +526,10 @@ namespace Pionex.Net.Clients.SpotApi
                 QuantityFilled = new SharedOrderQuantity(x.QuantityFilled, x.QuoteQuantityFilled),
                 TimeInForce = x.IOC ? SharedTimeInForce.ImmediateOrCancel : SharedTimeInForce.GoodTillCanceled,
                 UpdateTime = x.UpdateTime,
+#pragma warning disable CS0618 // Type or member is obsolete
                 Fee = x.Fee,
                 FeeAsset = x.FeeAsset
+#pragma warning restore CS0618 // Type or member is obsolete
             }).ToArray());
 
         }
@@ -582,8 +586,10 @@ namespace Pionex.Net.Clients.SpotApi
                             QuantityFilled = new SharedOrderQuantity(x.QuantityFilled, x.QuoteQuantityFilled),
                             TimeInForce = x.IOC ? SharedTimeInForce.ImmediateOrCancel : SharedTimeInForce.GoodTillCanceled,
                             UpdateTime = x.UpdateTime,
+#pragma warning disable CS0618 // Type or member is obsolete
                             Fee = x.Fee,
                             FeeAsset = x.FeeAsset
+#pragma warning restore CS0618 // Type or member is obsolete
                         })
                         .ToArray(), nextPageRequest);
 

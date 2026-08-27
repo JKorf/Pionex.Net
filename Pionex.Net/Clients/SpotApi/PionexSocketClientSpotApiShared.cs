@@ -110,13 +110,16 @@ namespace Pionex.Net.Clients.SpotApi
             var result = await _api.SubscribeToOrderBookUpdatesAsync(
                 symbol,
                 request.Limit ?? 20, 
-                update => handler(update.ToType(new SharedOrderBook(SharedQuantityType.BaseAsset, update.Data.Asks, update.Data.Bids))), ct).ConfigureAwait(false);
+                update => handler(update.ToType(new SharedOrderBook(SharedQuantityType.BaseAsset, null, update.Data.Asks, update.Data.Bids))), ct).ConfigureAwait(false);
 
             return result;
         }
         #endregion
 
         #region Spot Order client
+
+        async Task<WebSocketResult<UpdateSubscription>> ISpotOrderSocketClient.SubscribeToSpotOrderUpdatesAsync(SubscribeSpotOrderRequest request, Action<DataEvent<SharedSpotOrder[]>> handler, CancellationToken ct)
+            => await SubscribeToSpotOrderUpdatesAsync(request, x => handler(x.ToType<SharedSpotOrder[]>(x.Data)), ct).ConfigureAwait(false);
 
         public SubscribeSpotOrderOptions SubscribeSpotOrderOptions { get; }
             = new SubscribeSpotOrderOptions(_exchangeName, true)
@@ -125,7 +128,7 @@ namespace Pionex.Net.Clients.SpotApi
                     new ParameterDescription("Symbol", typeof(SharedSymbol), "Symbol to subscribe to open orders for", "ETH_USDT")
                     ]
             };
-        public async Task<WebSocketResult<UpdateSubscription>> SubscribeToSpotOrderUpdatesAsync(SubscribeSpotOrderRequest request, Action<DataEvent<SharedSpotOrder[]>> handler, CancellationToken ct)
+        public async Task<WebSocketResult<UpdateSubscription>> SubscribeToSpotOrderUpdatesAsync(SubscribeSpotOrderRequest request, Action<DataEvent<SharedSpotOrderUpdate[]>> handler, CancellationToken ct)
         {
             var validationError = SubscribeSpotOrderOptions.ValidateRequest(request, this);
             if (validationError != null)
@@ -135,7 +138,7 @@ namespace Pionex.Net.Clients.SpotApi
             var result = await _api.SubscribeToOrderUpdatesAsync(
                 symbol!.GetSymbol(FormatSymbol),
                 update => handler(update.ToType(new[] {
-                    new SharedSpotOrder(
+                    new SharedSpotOrderUpdate(
                     ExchangeSymbolCache.ParseSymbol(_topicId, _api.EnvironmentName, null, update.Data!.Symbol),
                     update.Data.Symbol,
                     update.Data.OrderId.ToString(),
@@ -150,8 +153,10 @@ namespace Pionex.Net.Clients.SpotApi
                 QuantityFilled = new SharedOrderQuantity(update.Data.QuantityFilled, update.Data.QuoteQuantityFilled),
                 TimeInForce = update.Data.IOC ? SharedTimeInForce.ImmediateOrCancel : SharedTimeInForce.GoodTillCanceled,
                 UpdateTime = update.Data.UpdateTime,
+#pragma warning disable CS0618 // Type or member is obsolete
                 Fee = update.Data.Fee,
                 FeeAsset = update.Data.FeeAsset
+#pragma warning restore CS0618 // Type or member is obsolete
             } })),
                 ct: ct).ConfigureAwait(false);
 

@@ -49,9 +49,17 @@ namespace Pionex.Net.UnitTests
         }
 
         [Test]
-        public void TestSpotSharedApiDiscoveryMatchesAggregate()
+        public void TestSpotRestSharedApiDiscoveryMatchesAggregate()
         {
             var (missingOptions, missingInterfaces) = TestHelpers.ValidateSharedApi(new PionexRestClient().SpotApi.SharedApi);
+
+            Assert.That(missingOptions, Is.Empty);
+            Assert.That(missingInterfaces, Is.Empty);
+        }
+        [Test]
+        public void TestSpotSocketSharedApiDiscoveryMatchesAggregate()
+        {
+            var (missingOptions, missingInterfaces) = TestHelpers.ValidateSharedApi(new PionexSocketClient().SpotApi.SharedApi);
 
             Assert.That(missingOptions, Is.Empty);
             Assert.That(missingInterfaces, Is.Empty);
