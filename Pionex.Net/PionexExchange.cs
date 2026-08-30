@@ -100,12 +100,19 @@ namespace Pionex.Net
         {
             Pionex = new RateLimitGate("Pionex")
                 .AddGuard(new RateLimitGuard(RateLimitGuard.PerHost, new LimitItemTypeFilter(RateLimitItemType.Request), 10, TimeSpan.FromSeconds(1), RateLimitWindowType.Sliding)); // 10 per 1 seconds shared per IP
+            // Pionex permits five messages per second per connection. Keep one slot available for heartbeat traffic.
+            Socket = new RateLimitGate("Pionex Socket")
+                .AddGuard(new RateLimitGuard(RateLimitGuard.PerConnection, new LimitItemTypeFilter(RateLimitItemType.Request), 4, TimeSpan.FromSeconds(1), RateLimitWindowType.Sliding));
+
             Pionex.RateLimitTriggered += (x) => RateLimitTriggered?.Invoke(x);
             Pionex.RateLimitUpdated += (x) => RateLimitUpdated?.Invoke(x);
+            Socket.RateLimitTriggered += (x) => RateLimitTriggered?.Invoke(x);
+            Socket.RateLimitUpdated += (x) => RateLimitUpdated?.Invoke(x);
         }
 
 
         internal IRateLimitGate Pionex { get; private set; }
+        internal IRateLimitGate Socket { get; private set; }
 
     }
 }
