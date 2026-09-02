@@ -27,7 +27,7 @@ namespace Pionex.Net.Interfaces.Clients.SpotApi
         public IPionexRestClientSpotApiTrading Trading { get; }
 
         /// <summary>
-        /// Get the shared rest requests client. For new implementations prefer using <see cref="SharedApi"/>
+        /// [V1] Get the shared rest requests client. For new implementations prefer using <see cref="SharedApi"/>
         /// </summary>
         public IPionexRestClientSpotApiShared SharedClient { get; }
 

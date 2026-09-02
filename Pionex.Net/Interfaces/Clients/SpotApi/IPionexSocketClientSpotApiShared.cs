@@ -21,12 +21,12 @@ namespace Pionex.Net.Interfaces.Clients.SpotApi
     /// exchange client libraries.
     /// </summary>
     public interface IPionexSocketClientSpotSharedApi :
-        ISubscribeTradesOperation,
-        ISubscribeOrderBookOperation,
-        ISubscribeBookTickerOperation,
-        ISubscribeSpotOrdersOperation,
-        ISubscribeUserTradesOperation,
-        ISubscribeBalancesOperation
+        ISubscribeTradesSocket,
+        ISubscribeOrderBookSocket,
+        ISubscribeBookTickerSocket,
+        ISubscribeSpotOrdersSocket,
+        ISubscribeUserTradesSocket,
+        ISubscribeBalancesSocket
     {
     }
 }

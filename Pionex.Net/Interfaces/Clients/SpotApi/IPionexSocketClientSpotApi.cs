@@ -64,7 +64,7 @@ namespace Pionex.Net.Interfaces.Clients.SpotApi
         Task<WebSocketResult<UpdateSubscription>> SubscribeToBalanceUpdatesAsync(Action<DataEvent<PionexBalance[]>> onMessage, CancellationToken ct = default);
 
         /// <summary>
-        /// Get the shared socket requests client. For new implementations prefer using <see cref="SharedApi"/>
+        /// [V1] Get the shared socket requests client. For new implementations prefer using <see cref="SharedApi"/>
         /// </summary>
         public IPionexSocketClientSpotApiShared SharedClient { get; }
         /// <summary>
