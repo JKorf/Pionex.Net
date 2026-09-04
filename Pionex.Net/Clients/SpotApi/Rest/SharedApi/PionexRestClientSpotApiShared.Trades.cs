@@ -15,7 +15,11 @@ namespace Pionex.Net.Clients.SpotApi
 {
     internal partial class PionexRestClientSpotSharedApi
     {
-        #region Recent Trades client
+        #region Get Recent Trades
+
+        async Task<ICallResult<SharedTrade[]>> IGetRecentTrades.GetRecentTradesAsync(GetRecentTradesRequest request, CancellationToken ct)
+            => await GetRecentTradesAsync(request, ct).ConfigureAwait(false);
+
         public GetRecentTradesOptions GetRecentTradesOptions { get; } = new GetRecentTradesOptions(_exchangeName, 500, false);
 
         public async Task<HttpResult<SharedTrade[]>> GetRecentTradesAsync(GetRecentTradesRequest request, CancellationToken ct)
@@ -41,6 +45,7 @@ namespace Pionex.Net.Clients.SpotApi
                 }).ToArray());
 
         }
+
         #endregion
     }
 }

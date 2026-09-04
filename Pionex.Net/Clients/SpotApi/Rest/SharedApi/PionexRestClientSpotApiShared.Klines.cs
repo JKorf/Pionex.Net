@@ -15,7 +15,11 @@ namespace Pionex.Net.Clients.SpotApi
 {
     internal partial class PionexRestClientSpotSharedApi
     {
-        #region Klines Client
+
+        #region Get Klines
+
+        async Task<ICallResult<SharedKline[]>> IGetKlines.GetKlinesAsync(GetKlinesRequest request, PageRequest? pageRequest, CancellationToken ct)
+            => await GetKlinesAsync(request, pageRequest, ct).ConfigureAwait(false);
 
         public GetKlinesOptions GetKlinesOptions { get; } = new GetKlinesOptions(_exchangeName, false, true, true, 500, false, [
             SharedKlineInterval.OneMinute,
@@ -76,5 +80,6 @@ namespace Pionex.Net.Clients.SpotApi
         }
 
         #endregion
+
     }
 }

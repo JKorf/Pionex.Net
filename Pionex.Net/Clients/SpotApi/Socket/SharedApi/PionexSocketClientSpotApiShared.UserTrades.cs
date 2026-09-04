@@ -16,7 +16,8 @@ namespace Pionex.Net.Clients.SpotApi
 {
     internal partial class PionexSocketClientSpotSharedApi
     {
-        #region User Trade client
+
+        #region Subscribe User Trades
 
         public SubscribeUserTradeOptions SubscribeUserTradeOptions { get; } = new SubscribeUserTradeOptions(_exchangeName, true)
         {
@@ -53,6 +54,7 @@ namespace Pionex.Net.Clients.SpotApi
 
             return result;
         }
+
         #endregion
     }
 }

@@ -16,7 +16,8 @@ namespace Pionex.Net.Clients.SpotApi
 {
     internal partial class PionexSocketClientSpotSharedApi
     {
-        #region Order Book client
+        #region Subscribe Order Book
+
         public SubscribeOrderBookOptions SubscribeOrderBookOptions { get; } = new SubscribeOrderBookOptions(_exchangeName, false, [1, 5, 10, 20, 50, 100]);
         public async Task<WebSocketResult<UpdateSubscription>> SubscribeToOrderBookUpdatesAsync(SubscribeOrderBookRequest request, Action<DataEvent<SharedOrderBook>> handler, CancellationToken ct)
         {
@@ -32,6 +33,7 @@ namespace Pionex.Net.Clients.SpotApi
 
             return result;
         }
+
         #endregion
     }
 }

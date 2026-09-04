@@ -15,7 +15,11 @@ namespace Pionex.Net.Clients.SpotApi
 {
     internal partial class PionexRestClientSpotSharedApi
     {
-        #region Spot Symbol client
+        #region Get Spot Symbols
+
+        async Task<ICallResult<SharedSpotSymbol[]>> IGetSpotSymbols.GetSpotSymbolsAsync(GetSymbolsRequest request, CancellationToken ct)
+            => await GetSpotSymbolsAsync(request, ct).ConfigureAwait(false);
+
         public SharedSymbolCatalog? SpotSymbolCatalog => ExchangeSymbolCache.GetSymbolCatalog(_exchangeName, _topicId, _api.EnvironmentName, null);
 
         public GetSpotSymbolsOptions GetSpotSymbolsOptions { get; }
@@ -39,6 +43,8 @@ namespace Pionex.Net.Clients.SpotApi
             ExchangeSymbolCache.UpdateSymbolInfo(_topicId, _api.EnvironmentName, null, data);
             return HttpResult.Ok(symbols, SharedUtils.ApplySymbolFilter(data, request));
         }
+
+        #endregion
 
         private SharedSpotSymbol ParseSymbol(PionexSymbol symbol)
         {
@@ -115,6 +121,5 @@ namespace Pionex.Net.Clients.SpotApi
 
             return ExchangeCallResult<bool>.Ok(_exchangeName,  ExchangeSymbolCache.SupportsSymbol(_topicId, _api.EnvironmentName, null, symbolName));
         }
-        #endregion
     }
 }

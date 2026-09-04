@@ -16,7 +16,8 @@ namespace Pionex.Net.Clients.SpotApi
 {
     internal partial class PionexSocketClientSpotSharedApi
     {
-        #region Spot Order client
+
+        #region Subscribe Spot Orders
 
         async Task<WebSocketResult<UpdateSubscription>> ISpotOrderSocketClient.SubscribeToSpotOrderUpdatesAsync(SubscribeSpotOrderRequest request, Action<DataEvent<SharedSpotOrder[]>> handler, CancellationToken ct)
             => await SubscribeToSpotOrderUpdatesAsync(request, x => handler(x.ToType<SharedSpotOrder[]>(x.Data)), ct).ConfigureAwait(false);
@@ -63,6 +64,8 @@ namespace Pionex.Net.Clients.SpotApi
             return result;
         }
 
+        #endregion
+
         private SharedOrderStatus ParseOrderStatus(PionexOrder order)
         {
             if (order.Status == OrderStatus.Open)
@@ -82,6 +85,5 @@ namespace Pionex.Net.Clients.SpotApi
 
             return SharedOrderStatus.Canceled;
         }
-        #endregion
     }
 }

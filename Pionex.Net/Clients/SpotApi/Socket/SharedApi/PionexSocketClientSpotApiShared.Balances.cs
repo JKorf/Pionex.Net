@@ -16,7 +16,8 @@ namespace Pionex.Net.Clients.SpotApi
 {
     internal partial class PionexSocketClientSpotSharedApi
     {
-        #region Balance client
+        #region Subscribe Balances
+
         public SubscribeBalanceOptions SubscribeBalanceOptions { get; } = new SubscribeBalanceOptions(_exchangeName, false);
         public async Task<WebSocketResult<UpdateSubscription>> SubscribeToBalanceUpdatesAsync(SubscribeBalancesRequest request, Action<DataEvent<SharedBalance[]>> handler, CancellationToken ct)
         {
@@ -37,6 +38,7 @@ namespace Pionex.Net.Clients.SpotApi
 
             return result;
         }
+
         #endregion
     }
 }

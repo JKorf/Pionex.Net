@@ -118,6 +118,11 @@ namespace Microsoft.Extensions.DependencyInjection
                     x.GetRequiredService<IOptions<PionexRestOptions>>(),
                     x.GetRequiredService<IOptions<PionexSocketOptions>>()));
 
+            services.AddTransient<IPionexSharedApiClient, PionexSharedApiClient>();
+
+            services.RegisterSharedApi(x => x.GetRequiredService<IPionexRestClient>().SpotApi.SharedApi);
+            services.RegisterSharedApi(x => x.GetRequiredService<IPionexSocketClient>().SpotApi.SharedApi);
+
             services.RegisterSharedRestInterfaces(x => x.GetRequiredService<IPionexRestClient>().SpotApi.SharedClient);
             services.RegisterSharedSocketInterfaces(x => x.GetRequiredService<IPionexSocketClient>().SpotApi.SharedClient);
             return services;
