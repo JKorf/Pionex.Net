@@ -112,8 +112,8 @@ namespace Pionex.Net.Clients.SpotApi
         public GetOpenSpotOrdersOptions GetOpenSpotOrdersOptions { get; }
             = new GetOpenSpotOrdersOptions(_exchangeName, true)
             {
-                RequiredRequestParameters = [
-                    RequestParameter<GetOpenOrdersRequest>.Required(x => x.Symbol, "Symbol to get open orders for", new SharedSymbol(TradingMode.Spot, "ETH", "USDT"))
+                ParameterRuleOverwrites = [
+                    RequestParameterRuleOverride<GetOpenOrdersRequest>.Required(x => x.Symbol)
                     ]
             };
         public async Task<HttpResult<SharedSpotOrder[]>> GetOpenSpotOrdersAsync(GetOpenOrdersRequest request, CancellationToken ct)

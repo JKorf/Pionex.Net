@@ -21,8 +21,8 @@ namespace Pionex.Net.Clients.SpotApi
 
         public SubscribeUserTradeOptions SubscribeUserTradeOptions { get; } = new SubscribeUserTradeOptions(_exchangeName, true)
         {
-            RequiredExchangeParameters = [
-                    new ParameterDescription("Symbol", typeof(SharedSymbol), "Symbol to subscribe to user trades for", "ETH_USDT")
+            ExchangeParameterRules = [
+                    ExchangeParameterRule.Required("Symbol", "Symbol to subscribe to user trades for", new SharedSymbol(TradingMode.Spot, "ETH", "USDT"))
                     ]
         };
         public async Task<WebSocketResult<UpdateSubscription>> SubscribeToUserTradeUpdatesAsync(SubscribeUserTradeRequest request, Action<DataEvent<SharedUserTrade[]>> handler, CancellationToken ct)

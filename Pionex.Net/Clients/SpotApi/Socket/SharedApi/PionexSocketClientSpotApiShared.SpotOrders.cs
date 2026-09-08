@@ -25,8 +25,8 @@ namespace Pionex.Net.Clients.SpotApi
         public SubscribeSpotOrderOptions SubscribeSpotOrderOptions { get; }
             = new SubscribeSpotOrderOptions(_exchangeName, true)
             {
-                RequiredExchangeParameters = [
-                    new ParameterDescription("Symbol", typeof(SharedSymbol), "Symbol to subscribe to open orders for", "ETH_USDT")
+                ExchangeParameterRules = [
+                    ExchangeParameterRule.Required("Symbol", "Symbol to subscribe to open orders for", new SharedSymbol(TradingMode.Spot, "ETH", "USDT"))
                     ]
             };
         public async Task<WebSocketResult<UpdateSubscription>> SubscribeToSpotOrderUpdatesAsync(SubscribeSpotOrderRequest request, Action<DataEvent<SharedSpotOrderUpdate[]>> handler, CancellationToken ct)
