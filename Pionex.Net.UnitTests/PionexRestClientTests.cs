@@ -1,6 +1,7 @@
 using CryptoExchange.Net.Authentication;
 using CryptoExchange.Net.Clients;
 using CryptoExchange.Net.Converters.SystemTextJson;
+using CryptoExchange.Net.Interfaces.Clients;
 using CryptoExchange.Net.Objects;
 using CryptoExchange.Net.SharedApis;
 using CryptoExchange.Net.Testing;
@@ -63,6 +64,22 @@ namespace Pionex.Net.UnitTests
 
             Assert.That(missingOptions, Is.Empty);
             Assert.That(missingInterfaces, Is.Empty);
+        }
+
+        [Test]
+        public void TestSpotRestSharedApiDoesntHaveUnsupportedCapabilities()
+        {
+            var unsupported = TestHelpers.ValidateUnsupportedCapabilities(new PionexRestClient().SpotApi.SharedApi);
+
+            Assert.That(unsupported, Is.Empty);
+        }
+
+        [Test]
+        public void TestSpotSocketSharedApiDoesntHaveUnsupportedCapabilities()
+        {
+            var unsupported = TestHelpers.ValidateUnsupportedCapabilities(new PionexSocketClient().SpotApi.SharedApi);
+
+            Assert.That(unsupported, Is.Empty);
         }
     }
 }
