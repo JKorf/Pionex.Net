@@ -112,7 +112,7 @@ namespace Pionex.Net.Clients.SpotApi
         public GetOpenSpotOrdersOptions GetOpenSpotOrdersOptions { get; }
             = new GetOpenSpotOrdersOptions(_exchangeName, true)
             {
-                ParameterRuleOverwrites = [
+                ParameterRuleOverrides = [
                     RequestParameterRuleOverride<GetOpenOrdersRequest>.Required(x => x.Symbol)
                     ]
             };
