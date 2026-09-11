@@ -57,9 +57,9 @@ namespace Microsoft.Extensions.DependencyInjection
             options.Socket.Environment = PionexEnvironment.GetEnvironmentByName(socketEnvName) ?? options.Socket.Environment!;
             options.Socket.ApiCredentials = options.Socket.ApiCredentials ?? options.ApiCredentials;
 
-
-            services.AddSingleton(x => Options.Options.Create(options.Rest));
-            services.AddSingleton(x => Options.Options.Create(options.Socket));
+            services.AddSingleton(Options.Options.Create(options.Rest));
+            services.AddSingleton(Options.Options.Create(options.Socket));
+            services.AddSingleton(Options.Options.Create(options));
 
             return AddPionexCore(services, options.SocketClientLifeTime);
         }
@@ -87,8 +87,9 @@ namespace Microsoft.Extensions.DependencyInjection
             options.Socket.Environment = options.Socket.Environment ?? options.Environment ?? PionexEnvironment.Live;
             options.Socket.ApiCredentials = options.Socket.ApiCredentials ?? options.ApiCredentials;
 
-            services.AddSingleton(x => Options.Options.Create(options.Rest));
-            services.AddSingleton(x => Options.Options.Create(options.Socket));
+            services.AddSingleton(Options.Options.Create(options.Rest));
+            services.AddSingleton(Options.Options.Create(options.Socket));
+            services.AddSingleton(Options.Options.Create(options));
 
             return AddPionexCore(services, options.SocketClientLifeTime);
         }
@@ -122,6 +123,8 @@ namespace Microsoft.Extensions.DependencyInjection
 
             services.RegisterSharedApi(x => x.GetRequiredService<IPionexRestClient>().SpotApi.SharedApi);
             services.RegisterSharedApi(x => x.GetRequiredService<IPionexSocketClient>().SpotApi.SharedApi);
+
+            services.RegisterSharedApiClientCapabilities<IPionexSharedApiClient>();
 
             services.RegisterSharedRestInterfaces(x => x.GetRequiredService<IPionexRestClient>().SpotApi.SharedClient);
             services.RegisterSharedSocketInterfaces(x => x.GetRequiredService<IPionexSocketClient>().SpotApi.SharedClient);

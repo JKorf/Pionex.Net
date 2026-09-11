@@ -1,3 +1,4 @@
+using CryptoExchange.Net.SharedApis;
 using Pionex.Net.Interfaces.Clients.SpotApi;
 
 namespace Pionex.Net.Interfaces.Clients
@@ -5,7 +6,7 @@ namespace Pionex.Net.Interfaces.Clients
     /// <summary>
     /// Client for the shared REST and WebSocket API implementations of Pionex
     /// </summary>
-    public interface IPionexSharedApiClient
+    public interface IPionexSharedApiClient : ISharedApiClientBase
     {
         /// <summary>
         /// REST shared API implementations
