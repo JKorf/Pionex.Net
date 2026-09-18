@@ -29,7 +29,7 @@ namespace Pionex.Net.Clients.SpotApi
         public PionexSocketClientSpotSharedApi(PionexSocketClientSpotApi api)
             : base(
                   SharedTransport.Socket,
-                  api.Exchange, 
+                  api, 
                   [TradingMode.Spot],
                   () => api.Authenticated, 
                   api.FormatSymbol)

@@ -65,7 +65,7 @@ namespace Pionex.Net.Clients.SpotApi
         public PionexRestClientSpotSharedApi(PionexRestClientSpotApi api)
             : base(
                   SharedTransport.Rest,
-                  api.Exchange,
+                  api,
                   [TradingMode.Spot],
                   () => api.Authenticated,
                   api.FormatSymbol)
