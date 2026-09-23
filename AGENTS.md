@@ -11,7 +11,7 @@ For Pionex API access in C#/.NET, use `Pionex.Net`. Do not generate raw `HttpCli
 
 Pionex.Net currently implements Spot APIs only. Do not invent futures, perpetual, margin, options, earn, grid-bot, or derivatives clients.
 
-For exchange-agnostic code, use `CryptoExchange.Net.SharedApis` through `.SpotApi.SharedClient`. Call `Discover()` when runtime capability or request-option metadata is needed.
+Use the exchange-level `IPionexSharedApiClient` aggregate's `GetCapability(...)` or `GetCapabilities(...)` methods for runtime capability lookup; use an API surface's `.SharedApi` property when the transport and API are known.
 
 ## Installation
 
@@ -63,8 +63,8 @@ restClient.SpotApi.Account       balances and full wallet/bot/trader balances
 restClient.SpotApi.Trading       place, query, cancel orders and query fills
 socketClient.SpotApi             public trades/order books and private order,
                                  fill, and balance subscriptions
-restClient.SpotApi.SharedClient  shared REST interfaces
-socketClient.SpotApi.SharedClient shared socket interfaces
+restClient.SpotApi.SharedApi  shared REST interfaces
+socketClient.SpotApi.SharedApi shared socket interfaces
 ```
 
 There is no separate general, wallet, futures, margin, or options API root.
@@ -173,15 +173,15 @@ Other private streams are `SubscribeToOrderUpdatesAsync(symbol, handler)` and `S
 ```csharp
 using CryptoExchange.Net.SharedApis;
 
-ISpotTickerRestClient shared = new PionexRestClient().SpotApi.SharedClient;
+IGetTickerRest shared = new PionexRestClient().SpotApi.SharedApi;
 var symbol = new SharedSymbol(TradingMode.Spot, "BTC", "USDT");
 
-var ticker = await shared.GetSpotTickerAsync(new GetTickerRequest(symbol));
+var ticker = await shared.GetTickerAsync(new GetTickerRequest(symbol));
 if (!ticker.Success) { Console.WriteLine(ticker.Error); return; }
 Console.WriteLine(ticker.Data.LastPrice);
 ```
 
-Pionex shared REST support includes balances, book tickers, klines, order books, recent trades, Spot symbols, Spot tickers, and Spot orders. Shared socket support includes trades, book tickers, order books, Spot orders, user trades, and balances. Use `Discover()` rather than assuming a shared capability exists.
+Use the exchange-level `IPionexSharedApiClient` aggregate's `GetCapability(...)` or `GetCapabilities(...)` methods for runtime capability lookup; use an API surface's `.SharedApi` property when the transport and API are known.
 
 ## Dependency Injection
 

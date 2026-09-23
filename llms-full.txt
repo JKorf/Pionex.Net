@@ -213,7 +213,7 @@ PionexRestClient
     ├── ExchangeData
     ├── Account
     ├── Trading
-    └── SharedClient
+    └── SharedApi
 ```
 
 The root socket client has one API:
@@ -221,7 +221,7 @@ The root socket client has one API:
 ```text
 PionexSocketClient
 └── SpotApi
-    └── SharedClient
+    └── SharedApi
 ```
 
 All direct socket subscription methods are directly on `socketClient.SpotApi`; there are no nested `ExchangeData`, `Account`, or `Trading` socket properties.
@@ -295,9 +295,6 @@ var symbols = await publicClient.SpotApi.ExchangeData.GetSymbolsAsync(
 if (!symbols.Success) { Console.WriteLine(symbols.Error); return; }
 
 var info = symbols.Data.Single();
-Console.WriteLine($"Enabled: {info.Enable}");
-Console.WriteLine($"Quantity precision: {info.QuantityPrecision}");
-Console.WriteLine($"Minimum quantity: {info.MinSpotQuantity}");
 ```
 
 Important `PionexSymbol` properties include:
@@ -550,15 +547,15 @@ Use SharedApis when application logic should not depend on Pionex-specific model
 ```csharp
 using CryptoExchange.Net.SharedApis;
 
-ISpotTickerRestClient shared =
-    new PionexRestClient().SpotApi.SharedClient;
+IGetTickerRest shared =
+    new PionexRestClient().SpotApi.SharedApi;
 
 var symbol = new SharedSymbol(
     TradingMode.Spot,
     "BTC",
     "USDT");
 
-var result = await shared.GetSpotTickerAsync(
+var result = await shared.GetTickerAsync(
     new GetTickerRequest(symbol));
 
 if (!result.Success) { Console.WriteLine(result.Error); return; }
@@ -570,8 +567,8 @@ The shared model uses `LastPrice`; the direct `PionexTicker` uses `ClosePrice`. 
 Capability discovery:
 
 ```csharp
-var shared = new PionexRestClient().SpotApi.SharedClient;
-var info = shared.Discover();
+var shared = new PionexRestClient().SpotApi.SharedApi;
+// Use the exchange-level `IPionexSharedApiClient` aggregate's `GetCapability(...)` or `GetCapabilities(...)` methods for runtime capability lookup; use an API surface's `.SharedApi` property when the transport and API are known.
 
 foreach (var feature in info.Features.Where(x => x.Supported))
     Console.WriteLine(feature);
@@ -583,23 +580,23 @@ Use discovery when selecting functionality dynamically or inspecting request con
 
 Pionex Spot shared REST client implements:
 
-- `IBalanceRestClient`
-- `IBookTickerRestClient`
-- `IKlineRestClient`
-- `IOrderBookRestClient`
-- `IRecentTradeRestClient`
-- `ISpotSymbolRestClient`
-- `ISpotTickerRestClient`
-- `ISpotOrderRestClient`
+- `IGetBalancesRest`
+- `IGetBookTickerRest`
+- `IGetKlinesRest`
+- `IGetOrderBookRest`
+- `IGetRecentTradesRest`
+- `IGetSpotSymbolsRest`
+- `IGetTickerRest`
+- `IPlaceSpotOrderRest`
 
 Pionex Spot shared socket client implements:
 
-- `ITradeSocketClient`
-- `IOrderBookSocketClient`
-- `IBookTickerSocketClient`
-- `ISpotOrderSocketClient`
-- `IUserTradeSocketClient`
-- `IBalanceSocketClient`
+- `ISubscribeTradesSocket`
+- `ISubscribeOrderBookSocket`
+- `ISubscribeBookTickerSocket`
+- `ISubscribeSpotOrdersSocket`
+- `ISubscribeUserTradesSocket`
+- `ISubscribeBalancesSocket`
 
 Do not assume unsupported shared futures, position, funding, withdrawal, or deposit interfaces.
 
