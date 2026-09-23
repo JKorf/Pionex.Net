@@ -26,6 +26,7 @@ namespace Pionex.Net.Converters
     [JsonSerializable(typeof(PionexSocketUpdate<PionexTrade[]>))]
     [JsonSerializable(typeof(PionexSocketUpdate<PionexOrderBook>))]
     [JsonSerializable(typeof(PionexSocketPingMessage))]
+    [JsonSerializable(typeof(PionexSocketCloseMessage))]
     [JsonSerializable(typeof(PionexSocketRequest))]
     [JsonSerializable(typeof(PionexSocketResponse))]
 

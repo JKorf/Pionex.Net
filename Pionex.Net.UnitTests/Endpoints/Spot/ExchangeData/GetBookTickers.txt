@@ -14,6 +14,14 @@ UriParams: {}
         "askPrice": "123",
         "askSize": "123",
         "timestamp": "123"
+      },
+      {
+        "symbol": "CF_USDT_PERP",
+        "bidPrice": "110.50",
+        "bidSize": "1.80",
+        "askPrice": "",
+        "askSize": "",
+        "timestamp": "1786488936710"
       }
     ]
   }

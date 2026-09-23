@@ -41,7 +41,10 @@ namespace Pionex.Net.Clients.SpotApi
         internal PionexSocketClientSpotApi(ILoggerFactory? loggerFactory, PionexSocketOptions options) :
             base(loggerFactory, PionexExchange.Metadata.Id, options.Environment.SocketClientAddress!, options, options.SpotOptions)
         {
+            RateLimiter = PionexExchange.RateLimiter.Socket;
+
             AddSystemSubscription(new PionexPingSubscription(_logger));
+            AddSystemSubscription(new PionexCloseSubscription(_logger));
         }
         #endregion
 
