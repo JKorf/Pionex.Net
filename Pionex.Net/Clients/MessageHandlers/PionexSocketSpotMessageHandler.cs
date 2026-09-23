@@ -42,9 +42,9 @@ namespace Pionex.Net.Clients.MessageHandlers
             },
             new MessageTypeDefinition {
                 Fields = [
-                    new PropertyFieldReference("op").WithEqualConstraint("PING"),
+                    new PropertyFieldReference("op"),
                 ],
-                StaticIdentifier = "PING"
+                TypeIdentifierCallback = x => x.FieldValue("op")!
             }
         ];
     }
