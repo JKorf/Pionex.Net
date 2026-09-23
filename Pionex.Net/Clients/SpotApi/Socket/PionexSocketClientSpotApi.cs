@@ -30,6 +30,8 @@ namespace Pionex.Net.Clients.SpotApi
     internal partial class PionexSocketClientSpotApi : SocketApiClient<PionexEnvironment, PionexAuthenticationProvider, PionexCredentials>, IPionexSocketClientSpotApi
     {
         #region fields
+        private readonly PionexSocketClientSpotSharedApi _sharedApi;
+
         protected override ErrorMapping ErrorMapping => PionexErrors.Errors;
         #endregion
 
@@ -45,6 +47,8 @@ namespace Pionex.Net.Clients.SpotApi
 
             AddSystemSubscription(new PionexPingSubscription(_logger));
             AddSystemSubscription(new PionexCloseSubscription(_logger));
+			
+            _sharedApi = new PionexSocketClientSpotSharedApi(this);
         }
         #endregion
 
@@ -183,7 +187,9 @@ namespace Pionex.Net.Clients.SpotApi
         }
 
         /// <inheritdoc />
-        public IPionexSocketClientSpotApiShared SharedClient => this;
+        public IPionexSocketClientSpotApiShared SharedClient => _sharedApi;
+        /// <inheritdoc />
+        public IPionexSocketClientSpotSharedApi SharedApi => _sharedApi;
 
         /// <inheritdoc />
         public override string FormatSymbol(string baseAsset, string quoteAsset, TradingMode tradingMode, DateTime? deliverDate = null)

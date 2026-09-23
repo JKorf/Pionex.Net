@@ -1,11 +1,17 @@
 using CryptoExchange.Net.Authentication;
 using CryptoExchange.Net.Clients;
 using CryptoExchange.Net.Converters.SystemTextJson;
+using CryptoExchange.Net.Interfaces.Clients;
 using CryptoExchange.Net.Objects;
+using CryptoExchange.Net.SharedApis;
+using CryptoExchange.Net.Testing;
 using NUnit.Framework;
-using System.Collections.Generic;
-using System.Net.Http;
+using NUnit.Framework.Legacy;
 using Pionex.Net.Clients;
+using Pionex.Net.Interfaces.Clients.SpotApi;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
 
 namespace Pionex.Net.UnitTests
 {
@@ -41,6 +47,39 @@ namespace Pionex.Net.UnitTests
         {
             CryptoExchange.Net.Testing.TestHelpers.CheckForMissingRestInterfaces<PionexRestClient>();
             CryptoExchange.Net.Testing.TestHelpers.CheckForMissingSocketInterfaces<PionexSocketClient>();
+        }
+
+        [Test]
+        public void TestSpotRestSharedApiDiscoveryMatchesAggregate()
+        {
+            var (missingOptions, missingInterfaces) = TestHelpers.ValidateSharedApi(new PionexRestClient().SpotApi.SharedApi);
+
+            Assert.That(missingOptions, Is.Empty);
+            Assert.That(missingInterfaces, Is.Empty);
+        }
+        [Test]
+        public void TestSpotSocketSharedApiDiscoveryMatchesAggregate()
+        {
+            var (missingOptions, missingInterfaces) = TestHelpers.ValidateSharedApi(new PionexSocketClient().SpotApi.SharedApi);
+
+            Assert.That(missingOptions, Is.Empty);
+            Assert.That(missingInterfaces, Is.Empty);
+        }
+
+        [Test]
+        public void TestSpotRestSharedApiDoesntHaveUnsupportedCapabilities()
+        {
+            var unsupported = TestHelpers.ValidateUnsupportedCapabilities(new PionexRestClient().SpotApi.SharedApi);
+
+            Assert.That(unsupported, Is.Empty);
+        }
+
+        [Test]
+        public void TestSpotSocketSharedApiDoesntHaveUnsupportedCapabilities()
+        {
+            var unsupported = TestHelpers.ValidateUnsupportedCapabilities(new PionexSocketClient().SpotApi.SharedApi);
+
+            Assert.That(unsupported, Is.Empty);
         }
     }
 }

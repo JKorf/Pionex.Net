@@ -49,7 +49,7 @@ Only retry failures for which `result.Error?.IsTransient == true`.
 - `restClient.SpotApi.Account`: balances and full balance details
 - `restClient.SpotApi.Trading`: order placement, lookup, cancellation, order history, and user trades
 - `socketClient.SpotApi`: public trade/order-book subscriptions and private order/user-trade/balance subscriptions
-- `.SpotApi.SharedClient`: CryptoExchange.Net SharedApis
+- `.SpotApi.SharedApi`: CryptoExchange.Net SharedApis
 
 ## Pionex-Specific Rules
 
@@ -100,19 +100,19 @@ Store every successful `UpdateSubscription` and unsubscribe during shutdown.
 
 ## Cross-Exchange Code
 
-Use `CryptoExchange.Net.SharedApis` through `.SharedClient`:
+Use `CryptoExchange.Net.SharedApis` through `.SharedApi`:
 
 ```csharp
 using CryptoExchange.Net.SharedApis;
 
-var shared = new PionexRestClient().SpotApi.SharedClient;
-var ticker = await shared.GetSpotTickerAsync(
+var shared = new PionexRestClient().SpotApi.SharedApi;
+var ticker = await shared.GetTickerAsync(
     new GetTickerRequest(new SharedSymbol(TradingMode.Spot, "BTC", "USDT")));
 
 if (!ticker.Success) { Console.WriteLine(ticker.Error); return; }
 ```
 
-Call `shared.Discover()` before dynamically selecting capabilities.
+Use the exchange-level `IPionexSharedApiClient` aggregate's `GetCapability(...)` or `GetCapabilities(...)` methods for runtime capability lookup; use an API surface's `.SharedApi` property when the transport and API are known.
 
 ## Avoid
 

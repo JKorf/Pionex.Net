@@ -21,6 +21,8 @@ namespace Pionex.Net.Clients.SpotApi
     internal partial class PionexRestClientSpotApi : RestApiClient<PionexEnvironment, PionexAuthenticationProvider, PionexCredentials>, IPionexRestClientSpotApi
     {
         #region fields 
+        private readonly PionexRestClientSpotSharedApi _sharedApi;
+
         protected override ErrorMapping ErrorMapping => PionexErrors.Errors;
 
         /// <inheritdoc />
@@ -46,6 +48,7 @@ namespace Pionex.Net.Clients.SpotApi
             ExchangeData = new PionexRestClientSpotApiExchangeData(_logger, this);
             Trading = new PionexRestClientSpotApiTrading(_logger, this);
 
+            _sharedApi = new PionexRestClientSpotSharedApi(this);
         }
         #endregion
 
@@ -96,6 +99,9 @@ namespace Pionex.Net.Clients.SpotApi
             => PionexExchange.FormatSymbol(baseAsset, quoteAsset, tradingMode, deliverDate);
 
         /// <inheritdoc />
-        public IPionexRestClientSpotApiShared SharedClient => this;
+        public IPionexRestClientSpotApiShared SharedClient => _sharedApi;
+
+        /// <inheritdoc />
+        public IPionexRestClientSpotSharedApi SharedApi => _sharedApi;
     }
 }

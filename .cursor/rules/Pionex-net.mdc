@@ -45,7 +45,7 @@ Always check `.Success` before `.Data`. Retry only transient errors.
 - `restClient.SpotApi.Account`
 - `restClient.SpotApi.Trading`
 - `socketClient.SpotApi`
-- `.SpotApi.SharedClient` for CryptoExchange.Net SharedApis
+- `.SpotApi.SharedApi` for CryptoExchange.Net SharedApis
 
 ## Direct API Rules
 
@@ -93,12 +93,12 @@ await socketClient.UnsubscribeAsync(sub.Data);
 ```csharp
 using CryptoExchange.Net.SharedApis;
 
-var shared = new PionexRestClient().SpotApi.SharedClient;
-var ticker = await shared.GetSpotTickerAsync(
+var shared = new PionexRestClient().SpotApi.SharedApi;
+var ticker = await shared.GetTickerAsync(
     new GetTickerRequest(new SharedSymbol(TradingMode.Spot, "BTC", "USDT")));
 ```
 
-Use `shared.Discover()` to inspect supported features and options.
+Use the exchange-level `IPionexSharedApiClient` aggregate's `GetCapability(...)` or `GetCapabilities(...)` methods for runtime capability lookup; use an API surface's `.SharedApi` property when the transport and API are known.
 
 ## Hard Rules
 

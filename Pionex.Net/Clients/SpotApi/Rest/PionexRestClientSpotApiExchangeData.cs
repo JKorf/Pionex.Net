@@ -28,7 +28,9 @@ namespace Pionex.Net.Clients.SpotApi
         /// <inheritdoc />
         public async Task<HttpResult<DateTime>> GetServerTimeAsync(CancellationToken ct = default)
         {
-            var request = _definitions.GetOrCreate(HttpMethod.Get, _baseClient.BaseAddress, "/api/v1/common/symbols", PionexExchange.RateLimiter.Pionex, 1, false);
+            var request = _definitions.GetOrCreate(HttpMethod.Get, _baseClient.BaseAddress, "/api/v1/common/symbols", PionexExchange.RateLimiter.Pionex, 1, false,
+                preventCaching: true,
+                preventRequestCoalescing: true);
             var result = await _baseClient.SendRawAsync<PionexResult>(request, null, ct).ConfigureAwait(false);
             if (!result.Success)
                 return HttpResult.Fail<DateTime>(result);

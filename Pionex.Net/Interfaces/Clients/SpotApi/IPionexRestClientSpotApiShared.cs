@@ -16,4 +16,28 @@ namespace Pionex.Net.Interfaces.Clients.SpotApi
         ISpotOrderRestClient
     {
     }
+
+    /// <summary>
+    /// Shared API interface. Shared APIs provide a common,
+    /// exchange-independent contract for accessing functionality across different
+    /// exchange client libraries.
+    /// </summary>
+    public interface IPionexRestClientSpotSharedApi :
+        IGetBalancesRest,
+        IGetBookTickerRest,
+        IGetKlinesRest,
+        IGetOrderBookRest,
+        IGetRecentTradesRest,
+        IGetSpotSymbolsRest,
+        IGetTickerRest,
+        IGetAllTickersRest,
+        IPlaceSpotOrderRest,
+        IGetSpotOrderRest,
+        IGetOpenSpotOrdersRest,
+        IGetClosedSpotOrdersRest,
+        IGetSpotOrderTradesRest,
+        IGetSpotUserTradeHistoryRest,
+        ICancelSpotOrderRest
+    {
+    }
 }
