@@ -1,38 +1,51 @@
-// 04-multi-exchange.cs
-//
-// Demonstrates: exchange-agnostic market data through CryptoExchange.Net
-// SharedApis. The same request model works with other supported libraries.
-//
+// Demonstrates portable REST and socket ticker capabilities through Shared API V2.
 // Setup: dotnet add package Pionex.Net
 
-using CryptoExchange.Net.SharedApis;
 using Pionex.Net.Clients;
+using CryptoExchange.Net.SharedApis;
 
-ISpotTickerRestClient pionex = new PionexRestClient().SpotApi.SharedClient;
+using var restClient = new PionexRestClient();
+IGetTickerRest ticker = restClient.SpotApi.SharedApi;
 var symbol = new SharedSymbol(TradingMode.Spot, "BTC", "USDT");
+await PrintTickerAsync(ticker, symbol);
 
-// Discover reports which shared interfaces and request options are supported.
-var capabilities = pionex.Discover();
-Console.WriteLine($"Shared features: {capabilities.Features.Count(x => x.Supported)}");
-
-await PrintTickerAsync(pionex, symbol);
-
-static async Task PrintTickerAsync(
-    ISpotTickerRestClient client,
-    SharedSymbol symbol)
+IGetSpotSymbolsRest symbolsClient = restClient.SpotApi.SharedApi;
+var symbols = await symbolsClient.GetSpotSymbolsAsync(new GetSymbolsRequest());
+if (!symbols.Success)
 {
-    var result = await client.GetSpotTickerAsync(new GetTickerRequest(symbol));
-    if (!result.Success)
-    {
-        Console.WriteLine($"[{client.Exchange}] Ticker failed: {result.Error}");
-        return;
-    }
+    Console.WriteLine(symbols.Error);
+    return;
+}
+foreach (var item in symbols.Data.Take(5))
+    Console.WriteLine($"{item.Name}: {item.BaseAsset}/{item.QuoteAsset}");
+var catalog = symbolsClient.SpotSymbolCatalog;
 
-    Console.WriteLine(
-        $"[{client.Exchange}] {result.Data.Symbol}: {result.Data.LastPrice}");
+using var socketClient = new PionexSocketClient();
+ISubscribeTradesSocket tradesSocket = socketClient.SpotApi.SharedApi;
+var subscription = await tradesSocket.SubscribeToTradeUpdatesAsync(
+    new SubscribeTradeRequest(symbol), update => Console.WriteLine(update.Data));
+if (!subscription.Success)
+{
+    Console.WriteLine(subscription.Error);
+    return;
+}
+try
+{
+    await Task.Delay(TimeSpan.FromSeconds(30));
+}
+finally
+{
+    await socketClient.UnsubscribeAsync(subscription.Data);
 }
 
-// Swap only the concrete client to query another exchange:
-// ISpotTickerRestClient binance =
-//     new BinanceRestClient().SpotApi.SharedClient;
-// await PrintTickerAsync(binance, symbol);
+// Another exchange can supply IGetTickerRest without changing this function.
+static async Task PrintTickerAsync(IGetTickerRest client, SharedSymbol symbol)
+{
+    var result = await client.GetTickerAsync(new GetTickerRequest(symbol));
+    if (!result.Success)
+    {
+        Console.WriteLine(result.Error);
+        return;
+    }
+    Console.WriteLine($"{result.Data.Symbol}: {result.Data.LastPrice}");
+}

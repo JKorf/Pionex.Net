@@ -1,236 +1,51 @@
----
-name: pionex-net
-description: Use Pionex.Net when generating C#/.NET code for the Pionex cryptocurrency exchange, including Spot REST endpoints, public or private WebSocket subscriptions, account balances, market data, order placement, local order books, or CryptoExchange.Net SharedApis.
----
+# Working on Pionex.Net
 
-# Pionex.Net Skill
+For library development, use this file. For code that consumes the library, read the [Pionex.Net skill](.claude/skills/pionex-net/SKILL.md). [llms.txt](llms.txt) indexes the remaining documentation.
 
-## Quick Decision
+## Repository layout
 
-For Pionex API access in C#/.NET, use `Pionex.Net`. Do not generate raw `HttpClient` or hand-written WebSocket code. The library handles signing, serialization, result models, rate limiting integration, and connection management.
+- [Client interfaces](Pionex.Net/Interfaces/Clients/): public endpoint signatures and XML documentation.
+- [Clients](Pionex.Net/Clients/): REST, WebSocket, and Shared API implementations, grouped by API and transport.
+- [Models](Pionex.Net/Objects/Models/), [options](Pionex.Net/Objects/Options/), and [enums](Pionex.Net/Enums/): wire models and configuration.
+- [Unit tests](Pionex.Net.UnitTests/): request/response fixtures, subscription validation, and example compilation.
+- [AI-friendly examples](Examples/ai-friendly/): complete consumer programs.
 
-Pionex.Net currently implements Spot APIs only. Do not invent futures, perpetual, margin, options, earn, grid-bot, or derivatives clients.
+## Build and validation
 
-Use the exchange-level `IPionexSharedApiClient` aggregate's `GetCapability(...)` or `GetCapabilities(...)` methods for runtime capability lookup; use an API surface's `.SharedApi` property when the transport and API are known.
+Run commands from the repository root. Use the SDK configured in the [build workflow](.github/workflows/dotnet.yml); targets and dependencies are defined in the [library project](Pionex.Net/Pionex.Net.csproj).
 
-## Installation
-
-```bash
-dotnet add package Pionex.Net
+```sh
+dotnet restore Pionex.Net.sln
+dotnet build Pionex.Net.sln --no-restore
+dotnet test Pionex.Net.UnitTests/Pionex.Net.UnitTests.csproj --no-build --filter "FullyQualifiedName!~IntegrationTests"
 ```
 
-Targets: netstandard2.0, netstandard2.1, net8.0, net9.0, and net10.0. Native AOT is supported on compatible targets.
+Debug builds select a subset of frameworks. To check every supported target:
 
-## Client Setup
-
-```csharp
-using Pionex.Net;
-using Pionex.Net.Clients;
-
-var publicClient = new PionexRestClient();
-
-var privateClient = new PionexRestClient(options =>
-{
-    options.ApiCredentials = new PionexCredentials("API_KEY", "API_SECRET");
-});
+```sh
+dotnet build Pionex.Net/Pionex.Net.csproj -p:BuildAllFrameworks=true
 ```
 
-Reuse clients. For applications with dependency injection, prefer `AddPionex`.
+Run focused tests for the change. For edits to consumer examples:
 
-## Result Handling
-
-REST methods return `HttpResult<T>` or `HttpResult`. WebSocket subscription methods return `WebSocketResult<UpdateSubscription>`. Always check `.Success` before accessing `.Data`.
-
-```csharp
-var result = await publicClient.SpotApi.ExchangeData.GetTickersAsync("BTC_USDT");
-if (!result.Success)
-{
-    Console.WriteLine(result.Error);
-    return;
-}
-
-var price = result.Data.Single().ClosePrice;
+```sh
+dotnet test Pionex.Net.UnitTests/Pionex.Net.UnitTests.csproj --filter FullyQualifiedName~AiExampleCompileTests
 ```
 
-Normal API failures are represented by `.Error`; do not assume they are thrown. Retry only when `result.Error?.IsTransient == true`.
+That test compiles the examples; it does not execute their exchange operations or validate Markdown snippets. The normal test command above excludes integration fixtures. Native REST and socket integration fixtures have `Run = false`; Shared REST integration can be enabled with `INTEGRATION=1`. Inspect integration fixtures before running the unfiltered CI test command; they can contact the exchange. Do not enable authenticated exchange calls as part of routine validation.
 
-## API Surface
+## Implementation conventions
 
-```text
-restClient.SpotApi.ExchangeData  public server time, symbols, trades, books,
-                                 tickers, book tickers, and klines
-restClient.SpotApi.Account       balances and full wallet/bot/trader balances
-restClient.SpotApi.Trading       place, query, cancel orders and query fills
-socketClient.SpotApi             public trades/order books and private order,
-                                 fill, and balance subscriptions
-restClient.SpotApi.SharedApi  shared REST interfaces
-socketClient.SpotApi.SharedApi shared socket interfaces
-```
+- Use the matching client interface and a neighboring endpoint implementation as the starting point. Preserve endpoint metadata, serialization, signing, rate limits, and cancellation behavior.
+- Update public interfaces and XML documentation together with implementations. Add meaningful request/response or subscription coverage when behavior changes.
+- Keep Shared API adapters consistent with native endpoint behavior; verify capability support and trading modes against the implemented surface.
+- Preserve serialization compatibility and source-generated JSON metadata when changing models.
+- Keep changes compatible with every target in the library project; gate framework-specific APIs where required.
 
-There is no separate general, wallet, futures, margin, or options API root.
+## AI documentation ownership
 
-## Symbols and Enums
-
-Direct Pionex methods use exchange symbols with an underscore:
-
-```csharp
-const string symbol = "BTC_USDT";
-```
-
-Do not use `BTCUSDT`, `BTC-USDT`, or `BTC/USDT` for direct calls. SharedApis uses a structured symbol:
-
-```csharp
-var symbol = new SharedSymbol(TradingMode.Spot, "BTC", "USDT");
-```
-
-Use Pionex enums such as `OrderSide`, `OrderType`, `SymbolType`, and `KlineInterval`. Do not substitute enums from another exchange library.
-
-## Market Data
-
-`GetTickersAsync` returns an array even with a symbol filter:
-
-```csharp
-using Pionex.Net.Enums;
-
-var tickerResult = await publicClient.SpotApi.ExchangeData.GetTickersAsync(
-    "BTC_USDT",
-    SymbolType.Spot);
-
-if (!tickerResult.Success) { Console.WriteLine(tickerResult.Error); return; }
-var ticker = tickerResult.Data.Single();
-Console.WriteLine(ticker.ClosePrice);
-```
-
-Use `ClosePrice`, not an invented `LastPrice`, on `PionexTicker`.
-
-## Order Placement
-
-```csharp
-using Pionex.Net.Enums;
-
-var order = await privateClient.SpotApi.Trading.PlaceOrderAsync(
-    symbol: "ETH_USDT",
-    side: OrderSide.Buy,
-    type: OrderType.Limit,
-    quantity: 0.01m,
-    price: 2000m);
-
-if (!order.Success) { Console.WriteLine(order.Error); return; }
-Console.WriteLine(order.Data.OrderId);
-```
-
-Order parameter rules:
-
-- Limit orders use `quantity` and `price`.
-- Market buys use `quoteQuantity` because the amount is denominated in the quote asset.
-- Market sells use `quantity` because the amount is denominated in the base asset.
-- `immediateOrCancel` and `clientOrderId` are optional.
-- Validate symbol precision, size limits, price bounds, and balances before placing real orders.
-
-Order lookup is `GetOrderAsync(long orderId)`. Cancellation requires both symbol and order ID:
-
-```csharp
-await privateClient.SpotApi.Trading.CancelOrderAsync("ETH_USDT", order.Data.OrderId);
-```
-
-## WebSocket Subscriptions
-
-Public trade and order-book streams do not require credentials:
-
-```csharp
-var socketClient = new PionexSocketClient();
-
-var subscription = await socketClient.SpotApi.SubscribeToTradeUpdatesAsync(
-    "BTC_USDT",
-    update =>
-    {
-        foreach (var trade in update.Data)
-            Console.WriteLine(trade.Price);
-    });
-
-if (!subscription.Success) { Console.WriteLine(subscription.Error); return; }
-await socketClient.UnsubscribeAsync(subscription.Data);
-```
-
-Direct public subscriptions are `SubscribeToTradeUpdatesAsync` and `SubscribeToOrderBookUpdatesAsync`. There are no direct ticker or kline subscription methods.
-
-Private subscriptions authenticate from the socket client credentials; Pionex.Net does not use REST-created listen keys:
-
-```csharp
-var privateSocket = new PionexSocketClient(options =>
-{
-    options.ApiCredentials = new PionexCredentials("API_KEY", "API_SECRET");
-});
-
-var balanceSub = await privateSocket.SpotApi.SubscribeToBalanceUpdatesAsync(
-    update => Console.WriteLine(update.Data.Length));
-```
-
-Other private streams are `SubscribeToOrderUpdatesAsync(symbol, handler)` and `SubscribeToUserTradeUpdatesAsync(symbol, handler)`.
-
-## SharedApis
-
-```csharp
-using CryptoExchange.Net.SharedApis;
-
-IGetTickerRest shared = new PionexRestClient().SpotApi.SharedApi;
-var symbol = new SharedSymbol(TradingMode.Spot, "BTC", "USDT");
-
-var ticker = await shared.GetTickerAsync(new GetTickerRequest(symbol));
-if (!ticker.Success) { Console.WriteLine(ticker.Error); return; }
-Console.WriteLine(ticker.Data.LastPrice);
-```
-
-Use the exchange-level `IPionexSharedApiClient` aggregate's `GetCapability(...)` or `GetCapabilities(...)` methods for runtime capability lookup; use an API surface's `.SharedApi` property when the transport and API are known.
-
-## Dependency Injection
-
-```csharp
-using Microsoft.Extensions.DependencyInjection;
-using Pionex.Net;
-
-services.AddPionex(options =>
-{
-    options.ApiCredentials = new PionexCredentials("API_KEY", "API_SECRET");
-});
-```
-
-Inject `IPionexRestClient` and `IPionexSocketClient`. Registration also exposes supported shared interfaces plus `IPionexOrderBookFactory`, `IPionexTrackerFactory`, and `IPionexUserClientProvider`.
-
-## Environments
-
-Only `PionexEnvironment.Live` is built in. No testnet environment is defined.
-
-```csharp
-var custom = PionexEnvironment.CreateCustom(
-    "custom",
-    "https://example-rest",
-    "wss://example-socket");
-```
-
-Set `options.Environment` to the custom environment when alternate endpoints are intentionally required.
-
-## Hard Rules
-
-- Never write raw Pionex HTTP signing or WebSocket protocol code when Pionex.Net covers the operation.
-- Never use symbols without the underscore for direct API calls.
-- Never read `.Data` before checking `.Success`.
-- Never use `.Result` or `.Wait()`; keep the flow asynchronous.
-- Never instantiate a client per request; reuse it or use DI.
-- Never use generic `ApiCredentials`; use `PionexCredentials`.
-- Never invent futures or derivatives clients.
-- Never invent ticker or kline direct socket subscriptions.
-- Never add a listen-key step for private Pionex sockets.
-- Never use `LastPrice` on direct `PionexTicker`; use `ClosePrice`.
-- Never assume single-symbol ticker calls return a single object; they return arrays.
-- Always keep and unsubscribe successful WebSocket subscriptions.
-- Check `Pionex.Net/Interfaces/Clients/**` before using an unfamiliar method.
-
-## Reference
-
-- Full context: `llms-full.txt`
-- Short index: `llms.txt`
-- Compilable examples: `Examples/ai-friendly/`
-- Source interfaces: `Pionex.Net/Interfaces/Clients/`
-- Repository: https://github.com/JKorf/Pionex.Net
-- Pionex API docs: https://www.pionex.com/docs/api-docs
+- [SKILL.md](.claude/skills/pionex-net/SKILL.md) owns consumer conventions and routes to detailed skill references.
+- [API surfaces](.claude/skills/pionex-net/references/api-surfaces.md) owns endpoint routing; [usage](.claude/skills/pionex-net/references/usage.md) owns snippets.
+- Link to those files instead of repeating API guides here or in tool-specific instructions.
+- Keep skill links relative. References outside the skill are checkout-only; packaged guidance must remain usable without repository sources.
+- The project packs [.claude/skills](.claude/skills/) into `skills/` in NuGet. After changing its layout, inspect package entries and verify referenced resources are included.

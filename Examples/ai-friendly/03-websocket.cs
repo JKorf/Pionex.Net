@@ -10,7 +10,7 @@ using Pionex.Net.Clients;
 
 const string symbol = "BTC_USDT";
 
-var publicSocket = new PionexSocketClient();
+using var publicSocket = new PionexSocketClient();
 
 var tradeSubscription = await publicSocket.SpotApi.SubscribeToTradeUpdatesAsync(
     symbol,
@@ -44,7 +44,7 @@ if (!bookSubscription.Success)
 }
 
 // Private streams authenticate with credentials configured on the socket client.
-var privateSocket = new PionexSocketClient(options =>
+using var privateSocket = new PionexSocketClient(options =>
 {
     options.ApiCredentials = new PionexCredentials("API_KEY", "API_SECRET");
 });

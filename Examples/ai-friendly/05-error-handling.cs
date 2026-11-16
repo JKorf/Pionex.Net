@@ -8,7 +8,7 @@ using CryptoExchange.Net.Objects;
 using Pionex.Net.Clients;
 using Pionex.Net.Enums;
 
-var client = new PionexRestClient();
+using var client = new PionexRestClient();
 
 var tickerResult = await client.SpotApi.ExchangeData.GetTickersAsync(
     "BTC_USDT",
@@ -46,6 +46,7 @@ static void LogError<T>(string operation, HttpResult<T> result)
     Console.WriteLine($"Transient: {result.Error?.IsTransient}");
 }
 
+// Public reads only: reconcile uncertain account changes before considering resubmission.
 static async Task<HttpResult<T>> WithTransientRetryAsync<T>(
     Func<Task<HttpResult<T>>> action,
     int maxAttempts = 3)

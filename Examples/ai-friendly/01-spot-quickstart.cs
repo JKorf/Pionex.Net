@@ -12,7 +12,7 @@ const string symbol = "BTC_USDT";
 
 // Public endpoints do not require API credentials. Reuse client instances in
 // production instead of creating a new client for every request.
-var publicClient = new PionexRestClient();
+using var publicClient = new PionexRestClient();
 
 var tickerResult = await publicClient.SpotApi.ExchangeData.GetTickersAsync(
     symbol,
@@ -42,7 +42,7 @@ Console.WriteLine($"Best bid: {orderBookResult.Data.Bids.FirstOrDefault()?.Price
 Console.WriteLine($"Best ask: {orderBookResult.Data.Asks.FirstOrDefault()?.Price}");
 
 // Account and trading endpoints require an API key and secret.
-var privateClient = new PionexRestClient(options =>
+using var privateClient = new PionexRestClient(options =>
 {
     options.ApiCredentials = new PionexCredentials("API_KEY", "API_SECRET");
 });

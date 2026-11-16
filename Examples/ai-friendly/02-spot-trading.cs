@@ -9,7 +9,7 @@ using Pionex.Net;
 using Pionex.Net.Clients;
 using Pionex.Net.Enums;
 
-var client = new PionexRestClient(options =>
+using var client = new PionexRestClient(options =>
 {
     options.ApiCredentials = new PionexCredentials("API_KEY", "API_SECRET");
 });

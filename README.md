@@ -98,17 +98,10 @@ For more examples and explanations, continue with the [Pionex.Net documentation]
 
 ## AI / LLM documentation
 
-Pionex.Net includes AI-oriented documentation and examples for code generation tools:
-
-|File|Purpose|
-|--|--|
-|[`AGENTS.md`](AGENTS.md)|Assistant skill with core Pionex.Net patterns, pitfalls, and examples|
-|[`llms.txt`](llms.txt)|Short LLM index with links to docs, examples, and critical usage rules|
-|[`llms-full.txt`](llms-full.txt)|Detailed LLM context with endpoint routing, authentication levels, code patterns, and anti-hallucination checks|
-|[`docs/ai-api-map.md`](docs/ai-api-map.md)|Table-style intent-to-method map|
-|[`Examples/ai-friendly`](Examples/ai-friendly)|Compilable single-file examples for common REST, authentication/trading, WebSocket, DI/order book, and error handling workflows|
-
-See [cryptoexchange-skills-hub](https://github.com/JKorf/cryptoexchange-skills-hub) for installable skills.
+- [Consumer skill](.claude/skills/pionex-net/SKILL.md): library usage and API references.
+- [Repository development](AGENTS.md): implementation and validation instructions.
+- [Documentation index](llms.txt): local discovery links.
+- [Compilable examples](Examples/ai-friendly/): complete consumer programs.
 
 ## Shared / unified API
 
@@ -249,4 +242,3 @@ Alternatively, sponsor me on Github using [Github Sponsors](https://github.com/s
 
 * Version 1.0.0 - 23 Jul 2026
     * Initial release
-
