@@ -1,0 +1,18 @@
+{
+  "baseBranch": "main",
+  "sdk": "11.0.100",
+  "packages": [
+    {
+      "key": "pionex",
+      "project": "Pionex.Net/Pionex.Net.csproj",
+      "testProjects": [
+        "Pionex.Net.UnitTests/Pionex.Net.UnitTests.csproj"
+      ],
+      "packageId": "Pionex.Net",
+      "readme": "README.md",
+      "tagPrefix": "Pionex.Net.",
+      "releaseIntegrationTests": false,
+      "publishToGitHubPackages": true
+    }
+  ]
+}
