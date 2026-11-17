@@ -54,8 +54,8 @@ namespace Pionex.Net
             var restClient = _serviceProvider?.GetRequiredService<IPionexRestClient>() ?? new PionexRestClient();
             var socketClient = _serviceProvider?.GetRequiredService<IPionexSocketClient>() ?? new PionexSocketClient();
 
-            var sharedRestClient = restClient.SpotApi.SharedClient;
-            var sharedSocketClient = socketClient.SpotApi.SharedClient;
+            var sharedRestClient = restClient.SpotApi.SharedApi;
+            var sharedSocketClient = socketClient.SpotApi.SharedApi;
             return new TradeTracker(
                 _serviceProvider?.GetRequiredService<ILoggerFactory>().CreateLogger(restClient.Exchange),
                 sharedRestClient,
