@@ -57,6 +57,15 @@ namespace Pionex.Net.Clients.SpotApi
         /// <inheritdoc />
         public override ISocketMessageHandler CreateMessageConverter(WebSocketMessageType messageType) => new PionexSocketSpotMessageHandler();
 
+        protected override bool RouteIsCompatible(string route1, string route2)
+        {
+            // Depth subscriptions for the same symbol but different depths are not identifiable
+            if (route1.StartsWith("DEPTH") && route2 == route1)
+                return false;
+
+            return true;
+        }
+
         /// <inheritdoc />
         protected override PionexAuthenticationProvider CreateAuthenticationProvider(PionexCredentials credentials)
             => new PionexAuthenticationProvider(credentials);
@@ -177,10 +186,10 @@ namespace Pionex.Net.Clients.SpotApi
             return Task.FromResult<Uri?>(new Uri(BaseAddress + AuthenticationProvider!.GetWebsocketQueryString(this)));
         }
 
-        protected override bool ConnectionCanBeUsedFor(SocketConnection connection, string address, bool authenticated, string? topic = null)
+        protected override bool ConnectionCanBeUsedFor(SocketConnection connection, string address, bool authenticated, IMessageProcessor? processor, string? topic = null)
         {
             if (!authenticated)
-                return base.ConnectionCanBeUsedFor(connection, address, authenticated, topic);
+                return base.ConnectionCanBeUsedFor(connection, address, authenticated, processor, topic);
 
             // Authenticated subscription can use existing authenticated connection
             return connection.ConnectionUriString.Contains("/ws?key");
